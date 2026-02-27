@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가족 추가 | Family News</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <h1>Family News</h1>
+        </div>
+        <p>가족 계정 추가</p>
+    </header>
+
+    <section class="form-section">
+        <div class="form-card">
+            <h2 class="form-title">가족추가</h2>
+            <form method="post">
+                {% csrf_token %}
+                {% if form.errors %}
+                <div class="form-errors">
+                    {{ form.errors }}
+                </div>
+                {% endif %}
+
+                <p>
+                    {{ form.username.label_tag }}
+                    {{ form.username }}
+                </p>
+                <p>
+                    {{ form.first_name.label_tag }}
+                    {{ form.first_name }}
+                </p>
+                <p>
+                    {{ form.email.label_tag }}
+                    {{ form.email }}
+                </p>
+                <p>
+                    {{ form.password1.label_tag }}
+                    {{ form.password1 }}
+                </p>
+                <p>
+                    {{ form.password2.label_tag }}
+                    {{ form.password2 }}
+                </p>
+                <p>
+                    {{ form.emoji.label_tag }}
+                    <div class="emoji-choice-grid">
+                        {% for radio in form.emoji %}
+                        <label class="emoji-choice-item">
+                            {{ radio.tag }}
+                            <span>{{ radio.choice_label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </p>
+                <div class="form-actions">
+                    <button class="menu-btn" type="submit">추가</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</body>
+</html>

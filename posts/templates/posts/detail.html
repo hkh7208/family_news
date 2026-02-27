@@ -1,0 +1,174 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ post.title }} | Family News</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <h1>Family News</h1>
+        </div>
+        <p>가족 소식 상세 보기</p>
+    </header>
+
+    <section class="detail-wrap">
+        <div class="detail-top-actions">
+            <a class="menu-btn menu-btn-outline" href="{% url 'home' %}">← 홈으로</a>
+        </div>
+        <article class="detail-card">
+            <p class="meta">
+                {{ post.created_at|date:'Y.m.d H:i' }}
+                {% if post.event_date %}
+                · 이벤트 {{ post.event_date|date:'Y.m.d' }}
+                {% endif %}
+                · {{ author_emoji }} {{ post.author.username }}
+            </p>
+            <h2 class="detail-title">{{ post.title }}</h2>
+            {% if slider_images %}
+            <div class="detail-image-wrap detail-slider" data-slider>
+                {% for image_url in slider_images %}
+                <img class="detail-image detail-slide{% if forloop.first %} is-active{% endif %}" src="{{ image_url }}" alt="{{ post.title }} 사진 {{ forloop.counter }}">
+                {% endfor %}
+
+                {% if slider_images|length > 1 %}
+                <button class="slider-btn slider-prev" type="button" data-prev>&lsaquo;</button>
+                <button class="slider-btn slider-next" type="button" data-next>&rsaquo;</button>
+                <div class="slider-dots">
+                    {% for image_url in slider_images %}
+                    <button class="slider-dot{% if forloop.first %} is-active{% endif %}" type="button" data-dot="{{ forloop.counter0 }}"></button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            <p class="detail-content">{{ post.content|linebreaksbr }}</p>
+
+            {% if post_videos %}
+            <section class="related-section">
+                <h3>동영상</h3>
+                <div class="related-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+                    {% for video_url in post_videos %}
+                    <video controls preload="metadata" style="width: 100%; border-radius: 10px; border: 1px solid var(--card-border); background: #000;">
+                        <source src="{{ video_url }}" type="video/mp4">
+                    </video>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            {% if post.tags.all %}
+            <div class="tag-list">
+                {% for tag in post.tags.all %}
+                <span class="tag-chip">#{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if related_items %}
+            <section class="related-section">
+                <h3>연관 사진</h3>
+                <div class="related-grid">
+                    {% for item in related_items %}
+                    <a class="related-card" href="{% url 'post_detail' item.post.pk %}">
+                        {% if item.post.main_image %}
+                        <img src="{{ item.post.main_image.url }}" alt="{{ item.post.title }}">
+                        {% endif %}
+                        <p>{{ item.emoji }} {{ item.post.title|truncatechars:28 }}</p>
+                    </a>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
+            <div class="form-actions">
+                {% if can_manage_post %}
+                <a class="menu-btn" href="{% url 'edit_post' post.pk %}">기사 수정</a>
+                <form method="post" action="{% url 'delete_post' post.pk %}" onsubmit="return confirm('이 기사를 삭제하시겠어요?');" style="display: inline-flex; margin-left: 8px;">
+                    {% csrf_token %}
+                    <button class="menu-btn menu-btn-danger" type="submit">기사 삭제</button>
+                </form>
+                {% endif %}
+                <a class="menu-btn menu-btn-outline" href="{% url 'home' %}">목록으로</a>
+            </div>
+        </article>
+    </section>
+
+    <script>
+        (function () {
+            const sliders = document.querySelectorAll('[data-slider]');
+            sliders.forEach((slider) => {
+                const slides = Array.from(slider.querySelectorAll('.detail-slide'));
+                const dots = Array.from(slider.querySelectorAll('.slider-dot'));
+                const prevBtn = slider.querySelector('[data-prev]');
+                const nextBtn = slider.querySelector('[data-next]');
+                if (slides.length <= 1) return;
+
+                let currentIndex = 0;
+                let autoPlayTimer = null;
+                const autoPlayDelay = 3000;
+                const render = () => {
+                    slides.forEach((slide, idx) => slide.classList.toggle('is-active', idx === currentIndex));
+                    dots.forEach((dot, idx) => dot.classList.toggle('is-active', idx === currentIndex));
+                };
+
+                const goNext = () => {
+                    currentIndex = (currentIndex + 1) % slides.length;
+                    render();
+                };
+
+                const stopAutoPlay = () => {
+                    if (autoPlayTimer) {
+                        clearInterval(autoPlayTimer);
+                        autoPlayTimer = null;
+                    }
+                };
+
+                const startAutoPlay = () => {
+                    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                    if (document.hidden) return;
+                    stopAutoPlay();
+                    autoPlayTimer = setInterval(goNext, autoPlayDelay);
+                };
+
+                prevBtn?.addEventListener('click', () => {
+                    currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+                    render();
+                    startAutoPlay();
+                });
+
+                nextBtn?.addEventListener('click', () => {
+                    goNext();
+                    startAutoPlay();
+                });
+
+                dots.forEach((dot, idx) => {
+                    dot.addEventListener('click', () => {
+                        currentIndex = idx;
+                        render();
+                        startAutoPlay();
+                    });
+                });
+
+                slider.addEventListener('mouseenter', stopAutoPlay);
+                slider.addEventListener('mouseleave', startAutoPlay);
+                slider.addEventListener('focusin', stopAutoPlay);
+                slider.addEventListener('focusout', startAutoPlay);
+
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        stopAutoPlay();
+                    } else {
+                        startAutoPlay();
+                    }
+                });
+
+                startAutoPlay();
+            });
+        })();
+    </script>
+</body>
+</html>

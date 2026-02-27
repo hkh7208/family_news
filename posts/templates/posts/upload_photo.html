@@ -1,0 +1,392 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뉴스추가 | Family News</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+    <style>
+        .upload-warning {
+            display: none;
+            margin: 0 0 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #b42318;
+            background: #fef3f2;
+            color: #b42318;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .upload-warning.is-active {
+            display: block;
+        }
+
+        .upload-loading {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .upload-loading.is-active {
+            display: flex;
+        }
+
+        .upload-loading-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 18px 20px;
+            min-width: 220px;
+            text-align: center;
+            border: 1px solid var(--card-border);
+        }
+
+        .upload-spinner {
+            width: 26px;
+            height: 26px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            border: 3px solid var(--accent-soft);
+            border-top-color: var(--accent);
+            animation: upload-spin 0.9s linear infinite;
+        }
+
+        @keyframes upload-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <h1>Family News</h1>
+        </div>
+        <p>뉴스추가</p>
+    </header>
+
+    <section class="form-section">
+        <div class="form-card">
+            <h2 class="form-title">뉴스추가</h2>
+            <p>태그를 입력하면 상세 페이지 하단에서 연관 사진을 함께 볼 수 있어요.</p>
+            {% if messages %}
+            {% for message in messages %}
+            {% if forloop.last %}
+            <div class="upload-warning is-active">{{ message }}</div>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+            <div class="upload-warning" data-upload-warning></div>
+            <form method="post" enctype="multipart/form-data" data-upload-form>
+                {% csrf_token %}
+                <p>
+                    {{ form.caption.label_tag }}
+                    {{ form.caption }}
+                </p>
+                <p>
+                    {{ form.captured_at.label_tag }}
+                    {{ form.captured_at }}
+                    <small>{{ form.captured_at.help_text }}</small>
+                </p>
+                <p>
+                    {{ form.event_date.label_tag }}
+                    {{ form.event_date }}
+                    <small>{{ form.event_date.help_text }}</small>
+                </p>
+                <p>
+                    {{ form.tags.label_tag }}
+                    {{ form.tags }}
+                    <small>{{ form.tags.help_text }}</small>
+                </p>
+                <p>
+                    {{ form.videos.label_tag }}
+                    {{ form.videos }}
+                    <small class="size-limit-text">사진과동영상은 파일당 최대 200MB까지 업로드 가능합니다.</small>
+                </p>
+                <div class="dropzone dropzone-clickable" data-dropzone tabindex="0" role="button" aria-label="사진 업로드 영역" style="border: 3px dashed var(--accent); background: rgba(120, 185, 181, 0.16); min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px;">
+                    <p class="dropzone-title">사진을 드래그하세요</p>
+                    <p class="dropzone-sub">여기에 파일을 끌어놓거나 이 영역을 클릭하세요.</p>
+                    <p class="dropzone-help size-limit-text">사진과동영상은 파일당 최대 200MB까지 업로드 가능합니다.</p>
+                    <div class="dropzone-hidden-input">{{ form.images }}</div>
+                    <input type="hidden" name="main_image_index" value="">
+                    <p class="dropzone-files" data-file-list>선택된 파일 없음</p>
+                    <p class="dropzone-help" data-main-image-guide>대표사진 체크박스를 선택하세요.</p>
+                    <div class="dropzone-previews" data-previews></div>
+                </div>
+                <div class="form-actions">
+                    <a class="menu-btn menu-btn-outline" href="{% url 'home' %}">뒤로</a>
+                    <button class="menu-btn" type="submit" data-upload-submit>업로드</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <div class="upload-loading" data-upload-loading aria-live="polite" aria-busy="true" aria-label="업로드 진행 중">
+        <div class="upload-loading-card">
+            <div class="upload-spinner"></div>
+            <p>업로드 및 압축 작업 중입니다...</p>
+            <p class="dropzone-help">동영상 길이에 따라 최대 수 분이 걸릴 수 있어요.</p>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const zone = document.querySelector('[data-dropzone]');
+            if (!zone) return;
+            const MAX_FILE_BYTES = 200 * 1024 * 1024;
+            const fileInput = zone.querySelector('input[name="images"]');
+            let videoInput = document.querySelector('input[name="videos"]');
+            const warningBox = document.querySelector('[data-upload-warning]');
+            const mainImageIndexInput = zone.querySelector('input[name="main_image_index"]');
+            const list = zone.querySelector('[data-file-list]');
+            const previews = zone.querySelector('[data-previews]');
+            if (!fileInput || !list || !previews || !mainImageIndexInput) return;
+            let selectedByDrop = false;
+            let warningTimer = null;
+            let warningHovered = false;
+
+            const dismissWarning = () => {
+                if (!warningBox || warningHovered) return;
+                warningBox.textContent = '';
+                warningBox.classList.remove('is-active');
+                warningTimer = null;
+            };
+
+            if (warningBox) {
+                warningBox.addEventListener('mouseenter', () => {
+                    warningHovered = true;
+                });
+                warningBox.addEventListener('mouseleave', () => {
+                    warningHovered = false;
+                    if (warningBox.classList.contains('is-active') && !warningTimer) {
+                        warningTimer = setTimeout(dismissWarning, 5000);
+                    }
+                });
+            }
+
+            const showWarning = (message) => {
+                if (!warningBox) return;
+                warningBox.textContent = message;
+                warningBox.classList.add('is-active');
+                if (warningTimer) {
+                    clearTimeout(warningTimer);
+                }
+                warningTimer = setTimeout(dismissWarning, 5000);
+            };
+
+            const hasOversizedFiles = (files) => Array.from(files || []).some((file) => (file.size || 0) > MAX_FILE_BYTES);
+
+            const rejectOversizedWithAlert = () => {
+                const message = '200메가 이상의 파일은 업로드 불가합니다.';
+                showWarning(message);
+                alert(message);
+            };
+
+            const resetVideoInput = () => {
+                if (!videoInput) return;
+                const replacement = videoInput.cloneNode(true);
+                videoInput.parentNode.replaceChild(replacement, videoInput);
+                videoInput = replacement;
+                bindVideoInputValidation();
+            };
+
+            const clearWarning = () => {
+                if (!warningBox) return;
+                if (warningTimer) {
+                    clearTimeout(warningTimer);
+                    warningTimer = null;
+                }
+                warningBox.textContent = '';
+                warningBox.classList.remove('is-active');
+            };
+
+            const renderPreviews = () => {
+                previews.innerHTML = '';
+                const files = Array.from(fileInput.files || []);
+                if (!files.length) {
+                    mainImageIndexInput.value = '';
+                }
+
+                files.forEach((file, idx) => {
+                    if (!file.type.startsWith('image/')) return;
+                    const item = document.createElement('div');
+                    item.className = 'preview-item';
+
+                    const image = document.createElement('img');
+                    image.className = 'preview-thumb';
+                    image.style.width = '64px';
+                    image.style.height = '64px';
+                    image.style.objectFit = 'cover';
+                    image.alt = file.name;
+                    image.src = URL.createObjectURL(file);
+                    image.onload = () => URL.revokeObjectURL(image.src);
+
+                    const name = document.createElement('span');
+                    name.className = 'preview-name';
+                    name.textContent = file.name;
+
+                    const checkboxLabel = document.createElement('label');
+                    checkboxLabel.className = 'preview-main-check';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = `main-image-check-${idx}`;
+                    checkbox.checked = String(idx) === mainImageIndexInput.value;
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            mainImageIndexInput.value = String(idx);
+                            previews.querySelectorAll('.preview-main-check input[type="checkbox"]').forEach((target, targetIdx) => {
+                                if (targetIdx !== idx) target.checked = false;
+                            });
+                        } else if (mainImageIndexInput.value === String(idx)) {
+                            mainImageIndexInput.value = '';
+                        }
+                    });
+
+                    const checkText = document.createElement('span');
+                    checkText.textContent = '대표사진';
+
+                    checkboxLabel.appendChild(checkbox);
+                    checkboxLabel.appendChild(checkText);
+
+                    item.appendChild(image);
+                    item.appendChild(name);
+                    item.appendChild(checkboxLabel);
+                    previews.appendChild(item);
+                });
+            };
+
+            const renderList = () => {
+                const files = Array.from(fileInput.files || []);
+                if (!files.length) {
+                    list.textContent = '선택된 파일 없음';
+                    previews.innerHTML = '';
+                    selectedByDrop = false;
+                    return;
+                }
+                clearWarning();
+                list.textContent = files.map((file) => file.name).join(', ');
+                renderPreviews();
+            };
+
+            ['dragenter', 'dragover'].forEach((eventName) => {
+                zone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    zone.classList.add('is-dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach((eventName) => {
+                zone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    zone.classList.remove('is-dragover');
+                });
+            });
+
+            zone.addEventListener('drop', (event) => {
+                const dropped = event.dataTransfer?.files;
+                if (!dropped || !dropped.length) return;
+                if (hasOversizedFiles(dropped)) {
+                    rejectOversizedWithAlert();
+                    return;
+                }
+                clearWarning();
+                const droppedFiles = Array.from(dropped);
+                const imageTransfer = new DataTransfer();
+                const videoTransfer = new DataTransfer();
+
+                droppedFiles.forEach((file) => {
+                    if ((file.type || '').startsWith('video/')) {
+                        videoTransfer.items.add(file);
+                        return;
+                    }
+                    if ((file.type || '').startsWith('image/')) {
+                        imageTransfer.items.add(file);
+                    }
+                });
+
+                fileInput.files = imageTransfer.files;
+                if (videoInput) {
+                    videoInput.files = videoTransfer.files;
+                }
+                selectedByDrop = imageTransfer.files.length > 0;
+                renderList();
+            });
+
+            zone.addEventListener('click', (event) => {
+                const clickTarget = event.target;
+                if (clickTarget && clickTarget.closest('.preview-main-check')) {
+                    return;
+                }
+                if (selectedByDrop && (fileInput.files?.length || 0) > 0) {
+                    return;
+                }
+                fileInput.click();
+            });
+
+            zone.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    fileInput.click();
+                }
+            });
+
+            fileInput.addEventListener('change', renderList);
+
+            const bindVideoInputValidation = () => {
+                if (!videoInput) return;
+                videoInput.addEventListener('change', () => {
+                    if (hasOversizedFiles(videoInput.files)) {
+                        rejectOversizedWithAlert();
+                        resetVideoInput();
+                        return;
+                    }
+                    clearWarning();
+                });
+            };
+            bindVideoInputValidation();
+
+            const form = document.querySelector('[data-upload-form]');
+            form?.addEventListener('submit', (event) => {
+                if (hasOversizedFiles(fileInput.files) || hasOversizedFiles(videoInput?.files)) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    rejectOversizedWithAlert();
+                    resetVideoInput();
+                    return;
+                }
+            });
+            renderList();
+        })();
+
+        (function () {
+            const form = document.querySelector('[data-upload-form]');
+            const loading = document.querySelector('[data-upload-loading]');
+            const submitButton = document.querySelector('[data-upload-submit]');
+            if (!form || !loading || !submitButton) return;
+            const MAX_FILE_BYTES = 200 * 1024 * 1024;
+
+            form.addEventListener('submit', (event) => {
+                const currentVideoInput = form.querySelector('input[name="videos"]');
+                const hasOversizedVideo = Array.from(currentVideoInput?.files || []).some((file) => (file.size || 0) > MAX_FILE_BYTES);
+                if (event.defaultPrevented || hasOversizedVideo) {
+                    if (hasOversizedVideo) {
+                        event.preventDefault();
+                        alert('200메가 이상의 파일은 업로드 불가합니다.');
+                    }
+                    return;
+                }
+                loading.classList.add('is-active');
+                submitButton.disabled = true;
+                submitButton.textContent = '업로드 중...';
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기사 수정 | Family News</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <h1>Family News</h1>
+        </div>
+        <p>기사 수정</p>
+    </header>
+
+    <section class="form-section">
+        <div class="form-card">
+            <h2 class="form-title">기사 수정</h2>
+            <p>태그를 쉼표로 구분해 입력하면 연관 사진 섹션에 함께 노출됩니다.</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% if form.errors %}
+                <div class="form-errors">
+                    {{ form.errors }}
+                </div>
+                {% endif %}
+                <p>
+                    {{ form.title.label_tag }}
+                    {{ form.title }}
+                </p>
+                <p>
+                    {{ form.content.label_tag }}
+                    {{ form.content }}
+                </p>
+                <p>
+                    {{ form.event_date.label_tag }}
+                    {{ form.event_date }}
+                </p>
+                <p>
+                    현재 대표 사진
+                    {% if post.main_image %}
+                    <img class="preview-image" src="{{ post.main_image.url }}" alt="{{ post.title }}">
+                    <label class="preview-main-check" style="margin-top: 6px;">
+                        <input type="checkbox" name="delete_main_image">
+                        대표 사진 삭제
+                    </label>
+                    {% else %}
+                    <span class="preview-name">대표 사진 없음</span>
+                    {% endif %}
+                </p>
+                {% if post.images.all %}
+                <p>
+                    기존 추가 사진
+                    <div class="dropzone-previews" style="margin-top: 8px; justify-content: flex-start; grid-template-columns: repeat(auto-fill, minmax(100px, 100px));">
+                        {% for image in post.images.all %}
+                        <div class="preview-item" style="width: 100px;">
+                            <img class="preview-thumb" style="width: 100px !important; height: 100px !important;" src="{{ image.image.url }}" alt="{{ post.title }} 추가 사진 {{ forloop.counter }}">
+                            <label class="preview-main-check" style="font-size: 0.78rem; white-space: nowrap;">
+                                <input type="checkbox" name="delete_existing_images" value="{{ image.pk }}">
+                                삭제
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </p>
+                {% endif %}
+                <p>
+                    {{ form.tags.label_tag }}
+                    {{ form.tags }}
+                    <small>{{ form.tags.help_text }}</small>
+                </p>
+                <div class="dropzone dropzone-clickable" data-dropzone tabindex="0" role="button" aria-label="사진 업로드 영역" style="border: 3px dashed var(--accent); background: rgba(120, 185, 181, 0.16); min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px;">
+                    <p class="dropzone-title">사진을 드래그하세요</p>
+                    <p class="dropzone-sub">여기에 파일을 끌어놓거나 이 영역을 클릭하세요.</p>
+                    <p class="dropzone-help size-limit-text">사진과동영상은 파일당 최대 200MB까지 업로드 가능합니다.</p>
+                    <div class="dropzone-hidden-input">{{ form.images }}</div>
+                    <input type="hidden" name="main_image_index" value="">
+                    <p class="dropzone-files" data-file-list>선택된 파일 없음</p>
+                    <p class="dropzone-help" data-main-image-guide>새로 올리는 사진 중 대표사진 체크박스를 선택하세요.</p>
+                    <div class="dropzone-previews" data-previews></div>
+                </div>
+                <div class="form-actions">
+                    <a class="menu-btn menu-btn-outline" href="{% url 'post_detail' post.pk %}">취소</a>
+                    <button class="menu-btn" type="submit">저장</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <script>
+        (function () {
+            const zone = document.querySelector('[data-dropzone]');
+            if (!zone) return;
+            const fileInput = zone.querySelector('input[name="images"]');
+            const mainImageIndexInput = zone.querySelector('input[name="main_image_index"]');
+            const list = zone.querySelector('[data-file-list]');
+            const previews = zone.querySelector('[data-previews]');
+            if (!fileInput || !list || !previews || !mainImageIndexInput) return;
+            let selectedByDrop = false;
+
+            const renderPreviews = () => {
+                previews.innerHTML = '';
+                const files = Array.from(fileInput.files || []);
+                if (!files.length) {
+                    mainImageIndexInput.value = '';
+                }
+
+                files.forEach((file, idx) => {
+                    if (!file.type.startsWith('image/')) return;
+                    const item = document.createElement('div');
+                    item.className = 'preview-item';
+
+                    const image = document.createElement('img');
+                    image.className = 'preview-thumb';
+                    image.style.width = '64px';
+                    image.style.height = '64px';
+                    image.style.objectFit = 'cover';
+                    image.alt = file.name;
+                    image.src = URL.createObjectURL(file);
+                    image.onload = () => URL.revokeObjectURL(image.src);
+
+                    const name = document.createElement('span');
+                    name.className = 'preview-name';
+                    name.textContent = file.name;
+
+                    const checkboxLabel = document.createElement('label');
+                    checkboxLabel.className = 'preview-main-check';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = `main-image-check-${idx}`;
+                    checkbox.checked = String(idx) === mainImageIndexInput.value;
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            mainImageIndexInput.value = String(idx);
+                            previews.querySelectorAll('.preview-main-check input[type="checkbox"]').forEach((target, targetIdx) => {
+                                if (targetIdx !== idx) target.checked = false;
+                            });
+                        } else if (mainImageIndexInput.value === String(idx)) {
+                            mainImageIndexInput.value = '';
+                        }
+                    });
+
+                    const checkText = document.createElement('span');
+                    checkText.textContent = '대표사진';
+
+                    checkboxLabel.appendChild(checkbox);
+                    checkboxLabel.appendChild(checkText);
+
+                    item.appendChild(image);
+                    item.appendChild(name);
+                    item.appendChild(checkboxLabel);
+                    previews.appendChild(item);
+                });
+            };
+
+            const renderList = () => {
+                const files = Array.from(fileInput.files || []);
+                if (!files.length) {
+                    list.textContent = '선택된 파일 없음';
+                    previews.innerHTML = '';
+                    selectedByDrop = false;
+                    return;
+                }
+                list.textContent = files.map((file) => file.name).join(', ');
+                renderPreviews();
+            };
+
+            ['dragenter', 'dragover'].forEach((eventName) => {
+                zone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    zone.classList.add('is-dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach((eventName) => {
+                zone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    zone.classList.remove('is-dragover');
+                });
+            });
+
+            zone.addEventListener('drop', (event) => {
+                const dropped = event.dataTransfer?.files;
+                if (!dropped || !dropped.length) return;
+                const transfer = new DataTransfer();
+                Array.from(dropped).forEach((file) => transfer.items.add(file));
+                fileInput.files = transfer.files;
+                selectedByDrop = true;
+                renderList();
+            });
+
+            zone.addEventListener('click', (event) => {
+                const clickTarget = event.target;
+                if (clickTarget && clickTarget.closest('.preview-main-check')) {
+                    return;
+                }
+                if (selectedByDrop && (fileInput.files?.length || 0) > 0) {
+                    return;
+                }
+                fileInput.click();
+            });
+
+            zone.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    fileInput.click();
+                }
+            });
+
+            fileInput.addEventListener('change', renderList);
+            renderList();
+        })();
+    </script>
+</body>
+</html>

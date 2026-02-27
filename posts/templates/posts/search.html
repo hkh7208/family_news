@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>뉴스검색 | Family News</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <h1>Family News</h1>
+        </div>
+        <p>뉴스검색</p>
+    </header>
+
+    <section class="form-section search-section">
+        <div class="form-card">
+            <h2 class="form-title">뉴스검색</h2>
+            <form method="get" class="search-form">
+                <p>
+                    <label for="search-query">검색어</label>
+                    <input id="search-query" type="text" name="q" value="{{ query }}" placeholder="태그 검색어를 입력하세요">
+                </p>
+                <p>
+                    <label for="search-sort">정렬</label>
+                    <select id="search-sort" name="sort">
+                        <option value="latest" {% if sort == 'latest' %}selected{% endif %}>최신순</option>
+                        <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>관련도순</option>
+                    </select>
+                </p>
+                <label class="search-check">
+                    <input type="checkbox" name="search_content" {% if search_content %}checked{% endif %}>
+                    본문검색
+                </label>
+                <div class="form-actions">
+                    <a class="menu-btn menu-btn-outline" href="{% url 'home' %}">홈으로</a>
+                    <button class="menu-btn" type="submit">검색</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="search-results-wrap">
+        <div class="search-headline-card">
+            <div class="search-headline-list">
+                {% for item in result_items %}
+                <article class="search-headline-item">
+                    <a class="search-headline-thumb-link" href="{% url 'post_detail' item.post.pk %}">
+                        {% if item.post.main_image %}
+                        <img class="search-headline-thumb" src="{{ item.post.main_image.url }}" alt="{{ item.post.title }}">
+                        {% else %}
+                        <div class="search-headline-thumb search-thumb-empty">No Image</div>
+                        {% endif %}
+                    </a>
+                    <div class="search-headline-body">
+                        <div class="search-headline-title-row">
+                            <a class="search-headline-title" href="{% url 'post_detail' item.post.pk %}">{{ item.post.title }}</a>
+                            <span class="search-count-badge">{{ item.tag_count }}</span>
+                        </div>
+                        <p class="search-headline-summary">{{ item.post.content|truncatechars:110 }}</p>
+                        <p class="search-headline-source">{{ item.emoji }} {{ item.post.author.username }} · {{ item.post.created_at|date:'Y.m.d H:i' }}</p>
+                    </div>
+                </article>
+                {% empty %}
+                <div class="search-empty">
+                    {% if query %}
+                    검색 결과가 없습니다.
+                    {% else %}
+                    태그 검색어를 입력해 주세요.
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if page_obj.paginator.num_pages > 1 %}
+        <div class="search-pagination">
+            {% if page_obj.has_previous %}
+            <a class="menu-btn menu-btn-outline" href="?q={{ query|urlencode }}&sort={{ sort }}{% if search_content %}&search_content=on{% endif %}&page={{ page_obj.previous_page_number }}">이전</a>
+            {% endif %}
+
+            <span class="search-page-info">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+            {% if page_obj.has_next %}
+            <a class="menu-btn menu-btn-outline" href="?q={{ query|urlencode }}&sort={{ sort }}{% if search_content %}&search_content=on{% endif %}&page={{ page_obj.next_page_number }}">다음</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </section>
+</body>
+</html>

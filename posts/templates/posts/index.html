@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>우리 가족 매거진</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <h1>Family News</h1>
+        </div>
+        <p>우리 가족의 소중한 일상을 담는 디지털 매거진</p>
+    </header>
+
+    <div class="content-actions">
+        {% if user.is_authenticated %}
+        <span class="user-name">{{ current_user_emoji }} {{ user.username }}</span>
+        <a class="menu-btn" href="{% url 'upload_photo' %}">뉴스추가</a>
+        <a class="menu-btn menu-btn-outline" href="{% url 'news_search' %}">뉴스검색</a>
+        {% if user.username == 'bihong' %}
+        <a class="menu-btn menu-btn-outline" href="{% url 'add_family_member' %}">가족추가</a>
+        {% endif %}
+        <a class="menu-btn menu-btn-outline" href="{% url 'family_logout' %}">로그아웃</a>
+        {% else %}
+        <a class="menu-btn menu-btn-outline" href="{% url 'news_search' %}">뉴스검색</a>
+        <a class="menu-btn" href="{% url 'family_login' %}">로그인</a>
+        {% endif %}
+    </div>
+
+    <section class="newspaper-main">
+        <div class="lead-story">
+            <p class="paper-kicker">가족 속보</p>
+            {% if hero_post %}
+            <a class="lead-story-link" href="{% url 'post_detail' hero_post.pk %}">
+                <h2>{{ hero_post.title }}</h2>
+                <p class="lead-meta">
+                    <span class="lead-meta-label">작성시간</span> {{ hero_post.created_at|date:'Y.m.d H:i' }}
+                    ·
+                    <span class="lead-meta-label">작성자</span> <span class="hero-author-emoji">{{ hero_author_emoji }}</span> {{ hero_post.author.username }}
+                </p>
+                {% if hero_post.main_image %}
+                <div class="lead-image-frame">
+                    <img src="{{ hero_post.main_image.url }}" alt="{{ hero_post.title }}">
+                </div>
+                {% endif %}
+                <p class="lead-summary">{{ hero_post.content|truncatechars:160 }}</p>
+            </a>
+            {% else %}
+            <h2>오늘의 가족 메인 소식이 아직 없어요</h2>
+            <p class="lead-summary">첫 게시글을 등록하면 신문 1면 메인 기사처럼 이곳에 크게 표시됩니다.</p>
+            {% endif %}
+        </div>
+
+        <aside class="paper-side">
+            <h3>주요 소식</h3>
+            <ol class="side-list">
+                {% for item in major_items %}
+                <li>{{ item.emoji }} {{ item.post.title }}</li>
+                {% empty %}
+                <li>아직 등록된 소식이 없습니다.</li>
+                {% endfor %}
+            </ol>
+        </aside>
+    </section>
+
+    <main class="magazine-grid">
+        {% for item in post_items %}
+        <a class="post-card-link" href="{% url 'post_detail' item.post.pk %}">
+            <article class="post-card">
+                {% if item.post.main_image %}
+                <img src="{{ item.post.main_image.url }}" alt="{{ item.post.title }}">
+                {% endif %}
+                <div class="post-body">
+                    <p class="meta">{{ item.post.created_at|date:'Y.m.d' }} · {{ item.emoji }} {{ item.post.author.username }}</p>
+                    <h3>{{ item.post.title }}</h3>
+                    <p>{{ item.post.content|truncatechars:110 }}</p>
+                </div>
+            </article>
+        </a>
+        {% empty %}
+        <div class="empty-card">
+            <h3>아직 등록된 가족 소식이 없어요</h3>
+            <p>첫 게시글과 사진을 추가하면 카드 형태로 깔끔하게 표시됩니다.</p>
+        </div>
+        {% endfor %}
+    </main>
+</body>
+</html>
