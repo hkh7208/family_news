@@ -18,10 +18,16 @@ git clone https://github.com/hkh7208/family_news.git .
 - `NAS_DB_*`
 - `DB_TARGET=nas`
 
-## 3) nginx 설정 파일 배치
-레포의 `deploy/nginx.nas.conf`를 NAS 경로에 둡니다.
+중요:
 
-- 파일 위치: `/volume1/web/family_news/deploy/nginx.nas.conf`
+- `DB_TARGET=nas`
+- `NAS_DB_HOST`는 NAS의 LAN IP(예: `192.168.0.250`)를 사용
+- `NAS_DB_PORT`는 Synology MariaDB 포트(기본 `3306`)로 설정
+
+## 3) nginx 설정 파일
+별도 복사 작업이 필요 없습니다. 레포 안의 파일을 그대로 사용합니다.
+
+- 파일 위치: `/volume1/web/family_news/app/deploy/nginx.nas.conf`
 
 ## 4) 컨테이너 실행
 ```bash

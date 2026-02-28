@@ -16,6 +16,8 @@ services:
       - /volume1/web/family_news/app:/app
       - /volume1/web/family_news/media:/app/media
       - /volume1/web/family_news/staticfiles:/app/staticfiles
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     expose:
       - "8000"
@@ -28,7 +30,7 @@ services:
     ports:
       - "8090:80"
     volumes:
-      - /volume1/web/family_news/deploy/nginx.nas.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/nginx.nas.conf:/etc/nginx/conf.d/default.conf:ro
       - /volume1/web/family_news/media:/app/media:ro
       - /volume1/web/family_news/staticfiles:/app/staticfiles:ro
     restart: unless-stopped
