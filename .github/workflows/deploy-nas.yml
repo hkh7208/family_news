@@ -1,0 +1,46 @@
+name: Deploy to Synology NAS
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.NAS_SSH_KEY }}
+
+      - name: Add NAS host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.NAS_PORT }}" -H "${{ secrets.NAS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on NAS
+        env:
+          NAS_HOST: ${{ secrets.NAS_HOST }}
+          NAS_PORT: ${{ secrets.NAS_PORT }}
+          NAS_USER: ${{ secrets.NAS_USER }}
+          NAS_APP_DIR: ${{ secrets.NAS_APP_DIR }}
+        run: |
+          TARGET_DIR="${NAS_APP_DIR:-/volume1/web/family_news/app}"
+
+          ssh -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
+            set -e
+            cd "${TARGET_DIR}"
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            docker compose -f docker-compose.nas.yml up -d --build
+
+            docker compose -f docker-compose.nas.yml ps
+          EOF
