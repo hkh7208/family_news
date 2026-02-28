@@ -34,7 +34,7 @@ def _has_runserver_addrport(args):
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
 
     if len(sys.argv) > 1 and sys.argv[1] == 'runserver':
         runserver_args = sys.argv[2:]

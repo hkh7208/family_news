@@ -11,7 +11,7 @@ services:
     command: >
       sh -c "python manage.py migrate --settings=config.settings.prod &&
              python manage.py collectstatic --noinput --settings=config.settings.prod &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+             DJANGO_SETTINGS_MODULE=config.settings.prod gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
     volumes:
       - /volume1/web/family_news/app:/app
       - /volume1/web/family_news/media:/app/media
