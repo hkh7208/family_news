@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(BASE_DIR / '.env')
 
-SECRET_KEY = 'django-insecure-본인의키' # 기존 settings.py에서 복사하세요.
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-본인의키')
 
 DEBUG = True
 
