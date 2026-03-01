@@ -14,6 +14,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        env:
+          NAS_HOST: ${{ secrets.NAS_HOST }}
+          NAS_PORT: ${{ secrets.NAS_PORT }}
+          NAS_USER: ${{ secrets.NAS_USER }}
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          [ -n "$NAS_HOST" ] || { echo "NAS_HOST is empty"; exit 1; }
+          [ -n "$NAS_PORT" ] || { echo "NAS_PORT is empty"; exit 1; }
+          [ -n "$NAS_USER" ] || { echo "NAS_USER is empty"; exit 1; }
+          [ -n "$NAS_SSH_KEY" ] || { echo "NAS_SSH_KEY is empty"; exit 1; }
+
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -31,11 +43,15 @@ jobs:
           NAS_USER: ${{ secrets.NAS_USER }}
           NAS_APP_DIR: ${{ secrets.NAS_APP_DIR }}
         run: |
+          set -euxo pipefail
           TARGET_DIR="${NAS_APP_DIR:-/volume1/web/family_news/app}"
 
           ssh -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
-            set -e
+            set -euxo pipefail
             cd "${TARGET_DIR}"
+
+            pwd
+            ls -la
 
             git fetch origin main
             git reset --hard origin/main
