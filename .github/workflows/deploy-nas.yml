@@ -59,6 +59,8 @@ jobs:
             pwd
             ls -la
 
+            git config --global --add safe.directory "$(pwd)"
+
             git fetch origin main
             git reset --hard origin/main
 
