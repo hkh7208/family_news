@@ -61,6 +61,7 @@
                         <div class="search-headline-title-row">
                             <a class="search-headline-title" href="{% url 'post_detail' item.post.pk %}">{{ item.post.title }}</a>
                             <span class="search-count-badge">{{ item.tag_count }}</span>
+                            <span class="comment-stat">💬 {{ item.post.comment_count|default:0 }}</span>
                         </div>
                         <p class="search-headline-summary">{{ item.post.content|truncatechars:110 }}</p>
                         <p class="search-headline-source">{{ item.emoji }} {{ item.post.author.username }} · {{ item.post.created_at|date:'Y.m.d H:i' }}</p>

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostImage, FamilyPostVideo, Tag
+from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, Tag
 
 
 class FamilyMemberProfileInline(admin.StackedInline):
@@ -47,7 +47,14 @@ class FamilyPostVideoInline(admin.TabularInline):
 	readonly_fields = ('created_at',)
 
 
-FamilyPostAdmin.inlines = [FamilyPostImageInline, FamilyPostVideoInline]
+class FamilyPostCommentInline(admin.TabularInline):
+	model = FamilyPostComment
+	extra = 0
+	fields = ('author', 'content', 'created_at')
+	readonly_fields = ('created_at',)
+
+
+FamilyPostAdmin.inlines = [FamilyPostImageInline, FamilyPostVideoInline, FamilyPostCommentInline]
 
 
 @admin.register(Tag)
@@ -75,6 +82,13 @@ class FamilyMemberPhotoAdmin(admin.ModelAdmin):
 	list_display = ('user', 'caption', 'created_at')
 	list_filter = ('created_at', 'user')
 	search_fields = ('user__username', 'caption')
+
+
+@admin.register(FamilyPostComment)
+class FamilyPostCommentAdmin(admin.ModelAdmin):
+	list_display = ('post', 'author', 'created_at')
+	list_filter = ('created_at',)
+	search_fields = ('post__title', 'author__username', 'content')
 
 
 try:

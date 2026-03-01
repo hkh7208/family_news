@@ -87,6 +87,41 @@
             </section>
             {% endif %}
 
+            <section class="related-section comments-section">
+                <h3>댓글 <span class="comment-count">{{ comments|length }}</span></h3>
+
+                {% if user.is_authenticated %}
+                <form method="post" action="{% url 'add_comment' post.pk %}" class="comment-form">
+                    {% csrf_token %}
+                    <div class="comment-form-emoji" role="radiogroup" aria-label="댓글 이모티콘 선택">
+                        {% for radio in comment_form.emoji %}
+                        <label class="comment-emoji-option">
+                            {{ radio.tag }}
+                            <span>{{ radio.choice_label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {{ comment_form.content }}
+                    <div class="form-actions">
+                        <button class="menu-btn" type="submit">댓글 등록</button>
+                    </div>
+                </form>
+                {% else %}
+                <p class="comment-login-guide">댓글은 회원만 작성할 수 있어요. <a href="{% url 'family_login' %}">로그인</a> 해주세요.</p>
+                {% endif %}
+
+                <div class="comment-list">
+                    {% for comment in comments %}
+                    <article class="comment-item">
+                        <p class="comment-meta"><span class="comment-emoji">{{ comment.emoji }}</span> {{ comment.author.username }} · {{ comment.created_at|date:'Y.m.d H:i' }}</p>
+                        <p class="comment-content">{{ comment.content|linebreaksbr }}</p>
+                    </article>
+                    {% empty %}
+                    <p class="comment-empty">아직 댓글이 없습니다. 첫 댓글을 남겨보세요.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
             <div class="form-actions">
                 {% if can_manage_post %}
                 <a class="menu-btn" href="{% url 'edit_post' post.pk %}">기사 수정</a>

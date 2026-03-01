@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import OperationalError, ProgrammingError
-from django.db.models import Q, Case, When, IntegerField, Value
+from django.db.models import Q, Case, When, IntegerField, Value, Count
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -17,8 +17,8 @@ import shutil
 import subprocess
 import tempfile
 
-from .forms import FamilyLoginForm, FamilyMemberCreateForm, FamilyMemberPhotoForm, FamilyPostEditForm
-from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostImage, FamilyPostVideo, Tag
+from .forms import FamilyLoginForm, FamilyMemberCreateForm, FamilyMemberPhotoForm, FamilyPostCommentForm, FamilyPostEditForm
+from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, Tag
 
 
 MAX_VIDEO_SIZE_BYTES = 200 * 1024 * 1024
@@ -284,7 +284,7 @@ def _is_bihong(user):
 
 def home(request):
 	try:
-		all_posts = FamilyPost.objects.select_related('author').order_by('-pk')
+		all_posts = FamilyPost.objects.select_related('author').annotate(comment_count=Count('comments')).order_by('-pk')
 		hero_post = all_posts.first()
 		posts = all_posts.exclude(pk=hero_post.pk) if hero_post else all_posts
 		major_posts = all_posts[:6]
@@ -345,6 +345,8 @@ def news_search(request):
 	else:
 		result_qs = FamilyPost.objects.none()
 
+	result_qs = result_qs.annotate(comment_count=Count('comments', distinct=True))
+
 	paginator = Paginator(result_qs, 10)
 	page_obj = paginator.get_page(request.GET.get('page'))
 
@@ -372,11 +374,12 @@ def news_search(request):
 
 def post_detail(request, pk):
 	post = get_object_or_404(
-		FamilyPost.objects.select_related('author').prefetch_related('tags', 'images', 'videos'),
+		FamilyPost.objects.select_related('author').prefetch_related('tags', 'images', 'videos', 'comments__author'),
 		pk=pk,
 	)
 	related_posts = FamilyPost.objects.none()
 	slider_images = []
+	comments = post.comments.select_related('author').order_by('-created_at')
 
 	if post.main_image:
 		slider_images.append(post.main_image.url)
@@ -401,6 +404,8 @@ def post_detail(request, pk):
 		for related in related_posts
 	]
 
+	comment_form = FamilyPostCommentForm()
+
 	return render(
 		request,
 		'posts/detail.html',
@@ -410,9 +415,27 @@ def post_detail(request, pk):
 			'slider_images': slider_images,
 			'post_videos': [video_item.video.url for video_item in post.videos.all()],
 			'related_items': related_items,
+			'comments': comments,
+			'comment_form': comment_form,
 			'can_manage_post': _can_manage_post(request.user, post),
 		},
 	)
+
+
+@login_required
+@require_POST
+def add_comment(request, pk):
+	post = get_object_or_404(FamilyPost, pk=pk)
+	form = FamilyPostCommentForm(request.POST)
+	if form.is_valid():
+		new_comment = form.save(commit=False)
+		new_comment.post = post
+		new_comment.author = request.user
+		new_comment.save()
+		messages.success(request, '댓글이 등록되었습니다.')
+	else:
+		messages.error(request, '댓글 내용을 입력해 주세요.')
+	return redirect('post_detail', pk=post.pk)
 
 
 @login_required

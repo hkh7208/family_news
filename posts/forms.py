@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 
-from .models import FamilyMemberPhoto, FamilyPost
+from .models import FamilyMemberPhoto, FamilyPost, FamilyPostComment
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -130,4 +130,31 @@ class FamilyPostEditForm(forms.ModelForm):
         }
         widgets = {
             'event_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+
+class FamilyPostCommentForm(forms.ModelForm):
+    emoji = forms.ChoiceField(
+        label='이모티콘',
+        choices=FamilyPostComment.EMOJI_CHOICES,
+        required=False,
+        initial='🙂',
+        widget=forms.RadioSelect,
+    )
+
+    class Meta:
+        model = FamilyPostComment
+        fields = ['emoji', 'content']
+        labels = {
+            'emoji': '이모티콘',
+            'content': '댓글',
+        }
+        widgets = {
+            'content': forms.Textarea(
+                attrs={
+                    'rows': 3,
+                    'placeholder': '댓글을 입력해 주세요.',
+                    'maxlength': '1000',
+                }
+            ),
         }

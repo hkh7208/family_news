@@ -63,7 +63,10 @@
             <h3>주요 소식</h3>
             <ol class="side-list">
                 {% for item in major_items %}
-                <li>{{ item.emoji }} {{ item.post.title }}</li>
+                <li>
+                    <a class="side-list-link" href="{% url 'post_detail' item.post.pk %}">{{ item.emoji }} {{ item.post.title }}</a>
+                    <span class="comment-stat">💬 {{ item.post.comment_count|default:0 }}</span>
+                </li>
                 {% empty %}
                 <li>아직 등록된 소식이 없습니다.</li>
                 {% endfor %}
@@ -82,6 +85,7 @@
                     <p class="meta">{{ item.post.created_at|date:'Y.m.d' }} · {{ item.emoji }} {{ item.post.author.username }}</p>
                     <h3>{{ item.post.title }}</h3>
                     <p>{{ item.post.content|truncatechars:110 }}</p>
+                    <p class="post-stats"><span class="comment-stat">💬 {{ item.post.comment_count|default:0 }}</span></p>
                 </div>
             </article>
         </a>

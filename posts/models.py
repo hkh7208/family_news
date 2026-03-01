@@ -90,3 +90,29 @@ class FamilyPostVideo(models.Model):
 
     def __str__(self):
         return f'{self.post.title} - {self.created_at:%Y-%m-%d %H:%M}'
+
+
+class FamilyPostComment(models.Model):
+    EMOJI_CHOICES = [
+        ('🙂', '🙂'),
+        ('😀', '😀'),
+        ('😍', '😍'),
+        ('👏', '👏'),
+        ('🎉', '🎉'),
+        ('❤️', '❤️'),
+        ('👍', '👍'),
+    ]
+
+    post = models.ForeignKey(FamilyPost, on_delete=models.CASCADE, related_name='comments', verbose_name='기사')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='family_post_comments', verbose_name='작성자')
+    emoji = models.CharField(max_length=5, choices=EMOJI_CHOICES, default='🙂', verbose_name='이모티콘')
+    content = models.TextField(max_length=1000, verbose_name='댓글 내용')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='작성일')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = '기사 댓글'
+        verbose_name_plural = '기사 댓글'
+
+    def __str__(self):
+        return f'{self.post.title} - {self.author.username}'

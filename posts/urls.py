@@ -1,12 +1,13 @@
 from django.urls import path
 
-from .views import add_family_member, approve_member, delete_post, edit_post, family_login, family_logout, family_signup, home, news_search, pending_approvals, post_detail, upload_photo
+from .views import add_comment, add_family_member, approve_member, delete_post, edit_post, family_login, family_logout, family_signup, home, news_search, pending_approvals, post_detail, upload_photo
 
 
 urlpatterns = [
     path('', home, name='home'),
     path('search/', news_search, name='news_search'),
     path('posts/<int:pk>/', post_detail, name='post_detail'),
+    path('posts/<int:pk>/comments/add/', add_comment, name='add_comment'),
     path('posts/<int:pk>/edit/', edit_post, name='edit_post'),
     path('posts/<int:pk>/delete/', delete_post, name='delete_post'),
     path('login/', family_login, name='family_login'),
