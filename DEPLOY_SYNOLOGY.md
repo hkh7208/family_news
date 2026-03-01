@@ -23,6 +23,9 @@ git clone https://github.com/hkh7208/family_news.git .
 - `DB_TARGET=nas`
 - `NAS_DB_HOST`는 NAS의 LAN IP(예: `192.168.0.250`)를 사용
 - `NAS_DB_PORT`는 Synology MariaDB 포트(기본 `3306`)로 설정
+- 도메인 전환 중이면 아래처럼 둘 다 허용해서 400 오류를 방지
+	- `DJANGO_ALLOWED_HOSTS=jakesto.synology.me,jakesto.snology.me,localhost,127.0.0.1`
+	- `DJANGO_CSRF_TRUSTED_ORIGINS=http://jakesto.synology.me:8090,http://jakesto.snology.me:8090`
 
 ## 3) nginx 설정 파일
 별도 복사 작업이 필요 없습니다. 레포 안의 파일을 그대로 사용합니다.
