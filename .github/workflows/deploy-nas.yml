@@ -50,6 +50,12 @@ jobs:
             set -euxo pipefail
             cd "${TARGET_DIR}"
 
+            if [ ! -d .git ] && [ -d app/.git ]; then
+              cd app
+            fi
+
+            [ -d .git ] || { echo "Git repository not found in \\$(pwd)"; exit 1; }
+
             pwd
             ls -la
 
