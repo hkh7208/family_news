@@ -4,13 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원가입 신청 | Family News</title>
+    <title>회원가입 신청 | 태선,제인이네 가족신문</title>
     <link rel="stylesheet" href="{% static 'posts/home.css' %}">
 </head>
 <body>
     <header class="site-header">
         <div class="header-top">
-            <h1>Family News</h1>
+            <div class="site-title-wrap">
+                <img class="site-title-icon" src="{% static 'posts/icons/newspaper.png' %}" alt="신문 아이콘" width="70" height="70">
+                <h1>태선,제인이네 가족신문</h1>
+            </div>
         </div>
         <p>회원가입 신청</p>
     </header>
@@ -68,5 +71,6 @@
             </p>
         </div>
     </section>
+    {% include 'posts/_site_footer.html' %}
 </body>
 </html>

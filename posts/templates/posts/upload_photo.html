@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>뉴스추가 | Family News</title>
+    <title>뉴스추가 | 태선,제인이네 가족신문</title>
     <link rel="stylesheet" href="{% static 'posts/home.css' %}">
     <style>
         .upload-warning {
@@ -66,7 +66,10 @@
 <body>
     <header class="site-header">
         <div class="header-top">
-            <h1>Family News</h1>
+            <div class="site-title-wrap">
+                <img class="site-title-icon" src="{% static 'posts/icons/newspaper.png' %}" alt="신문 아이콘" width="70" height="70">
+                <h1>태선,제인이네 가족신문</h1>
+            </div>
         </div>
         <p>뉴스추가</p>
     </header>
@@ -139,6 +142,7 @@
             <p class="dropzone-help">동영상 길이에 따라 최대 수 분이 걸릴 수 있어요.</p>
         </div>
     </div>
+    {% include 'posts/_site_footer.html' %}
 
     <script>
         (function () {
