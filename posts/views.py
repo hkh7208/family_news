@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import OperationalError, ProgrammingError
 from django.db.models import Q, Case, When, IntegerField, Value
@@ -277,6 +278,10 @@ def _can_manage_post(user, post):
 	return user == post.author or user.username == 'bihong'
 
 
+def _is_bihong(user):
+	return bool(user and user.is_authenticated and user.username == 'bihong')
+
+
 def home(request):
 	try:
 		all_posts = FamilyPost.objects.select_related('author').order_by('-pk')
@@ -512,10 +517,46 @@ def family_login(request):
 		if form.is_valid():
 			login(request, form.get_user())
 			return redirect('home')
+		username = (request.POST.get('username') or '').strip()
+		password = request.POST.get('password') or ''
+		if username and password:
+			try:
+				inactive_user = User.objects.get(username=username, is_active=False)
+			except User.DoesNotExist:
+				inactive_user = None
+			if inactive_user and inactive_user.check_password(password):
+				messages.error(request, '가입 승인 대기 중입니다. 관리자 승인 후 로그인할 수 있습니다.')
 	else:
 		form = FamilyLoginForm(request)
 
 	return render(request, 'posts/login.html', {'form': form})
+
+
+def family_signup(request):
+	if request.user.is_authenticated:
+		return redirect('home')
+
+	if request.method == 'POST':
+		form = FamilyMemberCreateForm(request.POST)
+		if form.is_valid():
+			new_user = form.save(commit=False)
+			new_user.is_active = False
+			new_user.save()
+			emoji = (form.cleaned_data.get('emoji') or '🙂').strip() or '🙂'
+			display_name = (form.cleaned_data.get('first_name') or '').strip()
+			FamilyMemberProfile.objects.update_or_create(
+				user=new_user,
+				defaults={
+					'emoji': emoji,
+					'display_name': display_name,
+				},
+			)
+			messages.success(request, '회원가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.')
+			return redirect('family_login')
+	else:
+		form = FamilyMemberCreateForm()
+
+	return render(request, 'posts/signup.html', {'form': form})
 
 
 @login_required
@@ -630,7 +671,7 @@ def upload_photo(request):
 
 @login_required
 def add_family_member(request):
-	if request.user.username != 'bihong':
+	if not _is_bihong(request.user):
 		return redirect('home')
 
 	if request.method == 'POST':
@@ -652,3 +693,25 @@ def add_family_member(request):
 		form = FamilyMemberCreateForm()
 
 	return render(request, 'posts/add_family_member.html', {'form': form})
+
+
+@login_required
+def pending_approvals(request):
+	if not _is_bihong(request.user):
+		return redirect('home')
+
+	pending_users = User.objects.filter(is_active=False).exclude(username='bihong').order_by('date_joined')
+	return render(request, 'posts/pending_approvals.html', {'pending_users': pending_users})
+
+
+@login_required
+@require_POST
+def approve_member(request, user_id):
+	if not _is_bihong(request.user):
+		return redirect('home')
+
+	target_user = get_object_or_404(User, pk=user_id, is_active=False)
+	target_user.is_active = True
+	target_user.save(update_fields=['is_active'])
+	messages.success(request, f'{target_user.username} 계정 가입이 승인되었습니다.')
+	return redirect('pending_approvals')

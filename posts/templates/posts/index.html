@@ -21,11 +21,13 @@
         <a class="menu-btn" href="{% url 'upload_photo' %}">뉴스추가</a>
         <a class="menu-btn menu-btn-outline" href="{% url 'news_search' %}">뉴스검색</a>
         {% if user.username == 'bihong' %}
+        <a class="menu-btn menu-btn-outline" href="{% url 'pending_approvals' %}">가입승인</a>
         <a class="menu-btn menu-btn-outline" href="{% url 'add_family_member' %}">가족추가</a>
         {% endif %}
         <a class="menu-btn menu-btn-outline" href="{% url 'family_logout' %}">로그아웃</a>
         {% else %}
         <a class="menu-btn menu-btn-outline" href="{% url 'news_search' %}">뉴스검색</a>
+        <a class="menu-btn menu-btn-outline" href="{% url 'family_signup' %}">회원가입</a>
         <a class="menu-btn" href="{% url 'family_login' %}">로그인</a>
         {% endif %}
     </div>

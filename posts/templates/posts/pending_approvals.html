@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가입 승인 | Family News</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <h1>Family News</h1>
+        </div>
+        <p>회원가입 승인 관리</p>
+    </header>
+
+    <section class="form-section approvals-section">
+        <div class="form-card">
+            <h2 class="form-title">가입 승인 대기 목록</h2>
+
+            {% if pending_users %}
+            <div class="approval-list">
+                {% for pending_user in pending_users %}
+                <div class="approval-item">
+                    <div class="approval-item-meta">
+                        <strong>{{ pending_user.username }}</strong>
+                        <span>{{ pending_user.first_name|default:'이름 미입력' }}</span>
+                        <span>{{ pending_user.email|default:'이메일 미입력' }}</span>
+                        <span>신청일 {{ pending_user.date_joined|date:'Y.m.d H:i' }}</span>
+                    </div>
+                    <form method="post" action="{% url 'approve_member' pending_user.id %}">
+                        {% csrf_token %}
+                        <button class="menu-btn" type="submit">승인</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="approval-empty">현재 승인 대기 중인 회원이 없습니다.</p>
+            {% endif %}
+
+            <div class="form-actions">
+                <a class="menu-btn menu-btn-outline" href="{% url 'home' %}">홈으로</a>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

@@ -201,6 +201,68 @@ body {
     justify-content: flex-end;
 }
 
+.form-guide {
+    margin: 0 0 12px;
+    color: var(--text-sub);
+    font-size: 0.9rem;
+}
+
+.form-helper-link {
+    margin: 14px 0 0;
+    font-size: 0.9rem;
+    color: var(--text-sub);
+}
+
+.form-helper-link a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.form-helper-link a:hover {
+    text-decoration: underline;
+}
+
+.approvals-section {
+    max-width: 760px;
+}
+
+.approval-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.approval-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.approval-item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.approval-item-meta strong {
+    font-size: 1rem;
+}
+
+.approval-item-meta span {
+    color: var(--text-sub);
+    font-size: 0.86rem;
+}
+
+.approval-empty {
+    margin: 0;
+    color: var(--text-sub);
+}
+
 .form-card .dropzone {
     margin-top: 8px;
     border: 3px dashed var(--accent);
