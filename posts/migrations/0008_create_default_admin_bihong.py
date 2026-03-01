@@ -1,4 +1,5 @@
 from django.db import migrations
+from django.contrib.auth.hashers import make_password
 
 
 def create_default_admin(apps, schema_editor):
@@ -18,7 +19,7 @@ def create_default_admin(apps, schema_editor):
     user.is_staff = True
     user.is_superuser = True
     user.is_active = True
-    user.set_password(password)
+    user.password = make_password(password)
     user.save(update_fields=['is_staff', 'is_superuser', 'is_active', 'password'])
 
 
