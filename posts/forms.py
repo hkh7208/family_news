@@ -57,6 +57,12 @@ class FamilyMemberPhotoForm(forms.ModelForm):
         required=False,
         help_text='쉼표 또는 #태그 형식으로 입력하세요. 예: 여행, 바다 또는 #여행 #바다',
     )
+    article_content = forms.CharField(
+        label='기사 내용',
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 6, 'placeholder': '가족 소식 본문을 입력하세요.'}),
+        help_text='사진 첨부 아래에 표시되는 뉴스 본문입니다.',
+    )
 
     caption = forms.CharField(label='설명', required=False, max_length=120)
 

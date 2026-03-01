@@ -119,6 +119,11 @@
                     <p class="dropzone-help" data-main-image-guide>대표사진 체크박스를 선택하세요.</p>
                     <div class="dropzone-previews" data-previews></div>
                 </div>
+                <p>
+                    {{ form.article_content.label_tag }}
+                    {{ form.article_content }}
+                    <small>{{ form.article_content.help_text }}</small>
+                </p>
                 <div class="form-actions">
                     <a class="menu-btn menu-btn-outline" href="{% url 'home' %}">뒤로</a>
                     <button class="menu-btn" type="submit" data-upload-submit>업로드</button>

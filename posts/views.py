@@ -625,6 +625,7 @@ def upload_photo(request):
 				return render(request, 'posts/upload_photo.html', {'form': form})
 
 			caption = (form.cleaned_data.get('caption') or '').strip()
+			article_content = (form.cleaned_data.get('article_content') or '').strip()
 			captured_at = form.cleaned_data.get('captured_at')
 			event_date = form.cleaned_data.get('event_date')
 
@@ -637,7 +638,7 @@ def upload_photo(request):
 				FamilyMemberPhoto.objects.filter(pk=member_photo.pk).update(created_at=captured_at)
 
 			post_title = caption if caption else f'{request.user.username}님의 사진 소식'
-			post_content = caption if caption else '가족 사진이 새로 업로드되었습니다.'
+			post_content = article_content or caption or '가족 사진이 새로 업로드되었습니다.'
 			should_be_hero = not FamilyPost.objects.filter(is_hero=True).exists()
 
 			new_post = FamilyPost.objects.create(
