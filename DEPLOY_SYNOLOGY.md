@@ -42,7 +42,7 @@ docker compose -f docker-compose.nas.yml logs -f web
 ```
 
 ## 6) 접속
-- `http://jakesto.snology.me:8090`
+- `http://jakesto.synology.me:8090`
 
 ## 참고
 - 동영상 압축용 `ffmpeg`는 `web` 이미지에 포함됩니다.

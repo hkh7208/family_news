@@ -16,7 +16,7 @@ cat ~/.ssh/family_news_deploy.pub >> ~/.ssh/authorized_keys
 
 GitHub 저장소 `Settings > Secrets and variables > Actions > New repository secret`에 아래를 추가합니다.
 
-- `NAS_HOST`: 예) `jakesto.snology.me`
+- `NAS_HOST`: 예) `jakesto.synology.me`
 - `NAS_PORT`: 예) `22`
 - `NAS_USER`: 예) `root` 또는 배포 사용자
 - `NAS_SSH_KEY`: `family_news_deploy` 개인키 전체 내용
