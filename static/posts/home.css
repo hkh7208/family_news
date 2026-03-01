@@ -30,6 +30,18 @@ body {
     gap: 12px;
 }
 
+.site-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.site-title-icon {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+}
+
 .top-menu {
     display: flex;
     align-items: center;
