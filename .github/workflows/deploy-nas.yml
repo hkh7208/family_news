@@ -68,3 +68,66 @@ jobs:
 
             docker compose -f docker-compose.nas.yml ps
           EOF
+
+      - name: Health check on NAS
+        env:
+          NAS_HOST: ${{ secrets.NAS_HOST }}
+          NAS_PORT: ${{ secrets.NAS_PORT }}
+          NAS_USER: ${{ secrets.NAS_USER }}
+          NAS_APP_DIR: ${{ secrets.NAS_APP_DIR }}
+        run: |
+          set -euxo pipefail
+          TARGET_DIR="${NAS_APP_DIR:-/volume1/web/family_news/app}"
+
+          ssh -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
+            set -euxo pipefail
+            cd "${TARGET_DIR}"
+
+            if [ ! -d .git ] && [ -d app/.git ]; then
+              cd app
+            fi
+
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              if command -v curl >/dev/null 2>&1; then
+                if curl -fsS "http://127.0.0.1:8090/" >/dev/null; then
+                  echo "Health check passed"
+                  exit 0
+                fi
+              else
+                if wget -q -O /dev/null "http://127.0.0.1:8090/"; then
+                  echo "Health check passed"
+                  exit 0
+                fi
+              fi
+
+              echo "Health check retry: \${i}/10"
+              sleep 3
+            done
+
+            echo "Health check failed"
+            exit 1
+          EOF
+
+      - name: Collect NAS logs on failure
+        if: failure()
+        env:
+          NAS_HOST: ${{ secrets.NAS_HOST }}
+          NAS_PORT: ${{ secrets.NAS_PORT }}
+          NAS_USER: ${{ secrets.NAS_USER }}
+          NAS_APP_DIR: ${{ secrets.NAS_APP_DIR }}
+        run: |
+          set -euxo pipefail
+          TARGET_DIR="${NAS_APP_DIR:-/volume1/web/family_news/app}"
+
+          ssh -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
+            set -euxo pipefail
+            cd "${TARGET_DIR}"
+
+            if [ ! -d .git ] && [ -d app/.git ]; then
+              cd app
+            fi
+
+            docker compose -f docker-compose.nas.yml ps || true
+            docker compose -f docker-compose.nas.yml logs --tail=200 web || true
+            docker compose -f docker-compose.nas.yml logs --tail=200 nginx || true
+          EOF
