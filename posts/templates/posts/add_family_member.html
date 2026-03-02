@@ -31,7 +31,11 @@
 
                 <p>
                     {{ form.username.label_tag }}
-                    {{ form.username }}
+                    <div class="username-check-row">
+                        {{ form.username }}
+                        <button class="menu-btn menu-btn-outline" type="button" id="username-check-btn">중복체크</button>
+                    </div>
+                    <small id="username-check-message" class="username-check-message">아이디 입력 후 중복체크를 눌러주세요.</small>
                 </p>
                 <p>
                     {{ form.first_name.label_tag }}
@@ -67,5 +71,44 @@
         </div>
     </section>
     {% include 'posts/_site_footer.html' %}
+    <script>
+        (function () {
+            const usernameInput = document.getElementById('id_username');
+            const checkButton = document.getElementById('username-check-btn');
+            const messageEl = document.getElementById('username-check-message');
+            if (!usernameInput || !checkButton || !messageEl) {
+                return;
+            }
+
+            const setMessage = (message, isAvailable) => {
+                messageEl.textContent = message;
+                messageEl.classList.remove('is-available', 'is-unavailable');
+                messageEl.classList.add(isAvailable ? 'is-available' : 'is-unavailable');
+            };
+
+            checkButton.addEventListener('click', function () {
+                const username = usernameInput.value.trim();
+                if (!username) {
+                    setMessage('아이디를 입력해주세요.', false);
+                    usernameInput.focus();
+                    return;
+                }
+
+                fetch("{% url 'check_username' %}?username=" + encodeURIComponent(username), {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        setMessage(data.message || '확인 결과를 불러오지 못했습니다.', Boolean(data.available));
+                    })
+                    .catch(function () {
+                        setMessage('중복체크 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', false);
+                    });
+            });
+        })();
+    </script>
 </body>
 </html>

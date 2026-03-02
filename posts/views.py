@@ -6,7 +6,9 @@ from django.core.files.base import ContentFile
 from django.db import OperationalError, ProgrammingError
 from django.db.models import Q, Case, When, IntegerField, Value, Count
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps, UnidentifiedImageError
 from io import BytesIO
@@ -17,7 +19,7 @@ import shutil
 import subprocess
 import tempfile
 
-from .forms import FamilyLoginForm, FamilyMemberCreateForm, FamilyMemberPhotoForm, FamilyPostCommentForm, FamilyPostEditForm
+from .forms import FamilyLoginForm, FamilyMemberCreateForm, FamilyMemberPhotoForm, FamilyMemberUpdateForm, FamilyPostCommentForm, FamilyPostEditForm
 from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, Tag
 
 
@@ -582,6 +584,18 @@ def family_signup(request):
 	return render(request, 'posts/signup.html', {'form': form})
 
 
+@require_GET
+def check_username(request):
+	username = (request.GET.get('username') or '').strip()
+	if not username:
+		return JsonResponse({'available': False, 'message': '아이디를 입력해주세요.'})
+
+	if User.objects.filter(username=username).exists():
+		return JsonResponse({'available': False, 'message': '이미 사용 중인 아이디입니다.'})
+
+	return JsonResponse({'available': True, 'message': '사용 가능한 아이디입니다.'})
+
+
 @login_required
 def family_logout(request):
 	logout(request)
@@ -739,3 +753,58 @@ def approve_member(request, user_id):
 	target_user.save(update_fields=['is_active'])
 	messages.success(request, f'{target_user.username} 계정 가입이 승인되었습니다.')
 	return redirect('pending_approvals')
+
+
+@login_required
+def member_management(request):
+	if not _is_bihong(request.user):
+		return redirect('home')
+
+	members = User.objects.exclude(username='bihong').order_by('date_joined')
+	member_items = [
+		{
+			'user': member,
+			'emoji': _get_user_emoji(member),
+		}
+		for member in members
+	]
+	return render(request, 'posts/member_management.html', {'member_items': member_items})
+
+
+@login_required
+def edit_member(request, user_id):
+	if not _is_bihong(request.user):
+		return redirect('home')
+
+	target_user = get_object_or_404(User, pk=user_id)
+	if target_user.username == 'bihong':
+		messages.error(request, '관리자 기본 계정은 수정할 수 없습니다.')
+		return redirect('member_management')
+
+	if request.method == 'POST':
+		form = FamilyMemberUpdateForm(request.POST, instance=target_user)
+		if form.is_valid():
+			updated_user = form.save()
+			messages.success(request, f'{updated_user.username} 회원 정보를 수정했습니다.')
+			return redirect('member_management')
+	else:
+		form = FamilyMemberUpdateForm(instance=target_user)
+
+	return render(request, 'posts/edit_member.html', {'form': form, 'target_user': target_user})
+
+
+@login_required
+@require_POST
+def delete_member(request, user_id):
+	if not _is_bihong(request.user):
+		return redirect('home')
+
+	target_user = get_object_or_404(User, pk=user_id)
+	if target_user.username == 'bihong':
+		messages.error(request, '관리자 기본 계정은 삭제할 수 없습니다.')
+		return redirect('member_management')
+
+	deleted_username = target_user.username
+	target_user.delete()
+	messages.success(request, f'{deleted_username} 회원 계정을 삭제했습니다.')
+	return redirect('member_management')

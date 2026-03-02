@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원관리 | 태선,제인이네 가족신문</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <div class="site-title-wrap">
+                <img class="site-title-icon" src="{% static 'posts/icons/newspaper.png' %}" alt="신문 아이콘" width="70" height="70">
+                <h1>태선,제인이네 가족신문</h1>
+            </div>
+        </div>
+        <p>회원관리</p>
+    </header>
+
+    <section class="form-section approvals-section">
+        <div class="form-card">
+            <h2 class="form-title">회원 목록</h2>
+
+            {% if member_items %}
+            <div class="approval-list">
+                {% for item in member_items %}
+                <div class="approval-item">
+                    <div class="approval-item-meta">
+                        <strong>{{ item.emoji }} {{ item.user.username }}</strong>
+                        <span>{{ item.user.first_name|default:'이름 미입력' }}</span>
+                        <span>{{ item.user.email|default:'이메일 미입력' }}</span>
+                        <span>상태 {% if item.user.is_active %}활성{% else %}비활성{% endif %}</span>
+                        <span>가입일 {{ item.user.date_joined|date:'Y.m.d H:i' }}</span>
+                    </div>
+                    <div class="member-actions">
+                        <a class="menu-btn menu-btn-outline" href="{% url 'edit_member' item.user.id %}">수정</a>
+                        <form method="post" action="{% url 'delete_member' item.user.id %}" onsubmit="return confirm('정말 삭제하시겠습니까? 이 사용자의 게시글/댓글도 함께 삭제될 수 있습니다.');">
+                            {% csrf_token %}
+                            <button class="menu-btn menu-btn-danger" type="submit">삭제</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="approval-empty">등록된 일반 회원이 없습니다.</p>
+            {% endif %}
+
+            <div class="form-actions">
+                <a class="menu-btn menu-btn-outline" href="{% url 'home' %}">홈으로</a>
+            </div>
+        </div>
+    </section>
+    {% include 'posts/_site_footer.html' %}
+</body>
+</html>

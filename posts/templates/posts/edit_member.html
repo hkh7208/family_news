@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원정보 수정 | 태선,제인이네 가족신문</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <div class="site-title-wrap">
+                <img class="site-title-icon" src="{% static 'posts/icons/newspaper.png' %}" alt="신문 아이콘" width="70" height="70">
+                <h1>태선,제인이네 가족신문</h1>
+            </div>
+        </div>
+        <p>회원정보 수정</p>
+    </header>
+
+    <section class="form-section">
+        <div class="form-card">
+            <h2 class="form-title">{{ target_user.username }} 정보 수정</h2>
+
+            <form method="post">
+                {% csrf_token %}
+                {% if form.errors %}
+                <div class="form-errors">
+                    {{ form.errors }}
+                </div>
+                {% endif %}
+
+                <p>
+                    {{ form.username.label_tag }}
+                    {{ form.username }}
+                </p>
+                <p>
+                    {{ form.first_name.label_tag }}
+                    {{ form.first_name }}
+                </p>
+                <p>
+                    {{ form.email.label_tag }}
+                    {{ form.email }}
+                </p>
+                <p>
+                    {{ form.is_active.label_tag }}
+                    {{ form.is_active }}
+                </p>
+                <p>
+                    {{ form.emoji.label_tag }}
+                    <div class="emoji-choice-grid">
+                        {% for radio in form.emoji %}
+                        <label class="emoji-choice-item">
+                            {{ radio.tag }}
+                            <span>{{ radio.choice_label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </p>
+
+                <div class="form-actions member-edit-actions">
+                    <a class="menu-btn menu-btn-outline" href="{% url 'member_management' %}">목록으로</a>
+                    <button class="menu-btn" type="submit">저장</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    {% include 'posts/_site_footer.html' %}
+</body>
+</html>

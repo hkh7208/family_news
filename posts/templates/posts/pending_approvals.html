@@ -27,7 +27,7 @@
                 {% for pending_user in pending_users %}
                 <div class="approval-item">
                     <div class="approval-item-meta">
-                        <strong>{{ pending_user.username }}</strong>
+                        <strong>아이디 {{ pending_user.username }}</strong>
                         <span>{{ pending_user.first_name|default:'이름 미입력' }}</span>
                         <span>{{ pending_user.email|default:'이메일 미입력' }}</span>
                         <span>신청일 {{ pending_user.date_joined|date:'Y.m.d H:i' }}</span>

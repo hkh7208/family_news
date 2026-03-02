@@ -215,6 +215,34 @@ body {
     font-family: inherit;
 }
 
+.username-check-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.username-check-row input {
+    flex: 1;
+}
+
+.username-check-row .menu-btn {
+    padding: 10px 12px;
+    white-space: nowrap;
+}
+
+.username-check-message {
+    display: block;
+    margin-top: 6px;
+}
+
+.username-check-message.is-available {
+    color: var(--accent);
+}
+
+.username-check-message.is-unavailable {
+    color: #b42318;
+}
+
 .form-errors {
     margin: 0 0 14px;
     color: #b42318;
@@ -282,6 +310,24 @@ body {
 .approval-item-meta span {
     color: var(--text-sub);
     font-size: 0.86rem;
+}
+
+.member-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.member-actions form {
+    margin: 0;
+}
+
+.member-edit-actions {
+    gap: 8px;
+}
+
+.form-card input[type="checkbox"] {
+    width: auto;
 }
 
 .approval-empty {

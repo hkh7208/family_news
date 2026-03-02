@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 
-from .models import FamilyMemberPhoto, FamilyPost, FamilyPostComment
+from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -87,6 +87,7 @@ class FamilyMemberCreateForm(UserCreationForm):
         ('👴', '👴 할아버지'),
     ]
 
+    username = forms.CharField(label='아이디', max_length=150)
     first_name = forms.CharField(label='이름', max_length=150, required=False)
     email = forms.EmailField(label='이메일', required=False)
     emoji = forms.ChoiceField(
@@ -100,6 +101,62 @@ class FamilyMemberCreateForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'first_name', 'email', 'password1', 'password2']
+
+    def clean_username(self):
+        username = (self.cleaned_data.get('username') or '').strip()
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError('이미 사용 중인 아이디입니다.')
+        return username
+
+
+class FamilyMemberUpdateForm(forms.ModelForm):
+    EMOJI_CHOICES = FamilyMemberCreateForm.EMOJI_CHOICES
+
+    username = forms.CharField(label='아이디', max_length=150)
+    first_name = forms.CharField(label='이름', max_length=150, required=False)
+    email = forms.EmailField(label='이메일', required=False)
+    is_active = forms.BooleanField(label='활성화(로그인 가능)', required=False)
+    emoji = forms.ChoiceField(
+        label='이모티콘',
+        choices=EMOJI_CHOICES,
+        required=False,
+        initial='🙂',
+        widget=forms.RadioSelect,
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'email', 'is_active']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            try:
+                self.fields['emoji'].initial = self.instance.family_profile.emoji or '🙂'
+            except FamilyMemberProfile.DoesNotExist:
+                self.fields['emoji'].initial = '🙂'
+
+    def clean_username(self):
+        username = (self.cleaned_data.get('username') or '').strip()
+        qs = User.objects.filter(username=username)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('이미 사용 중인 아이디입니다.')
+        return username
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        emoji = (self.cleaned_data.get('emoji') or '🙂').strip() or '🙂'
+        display_name = (self.cleaned_data.get('first_name') or '').strip()
+        FamilyMemberProfile.objects.update_or_create(
+            user=user,
+            defaults={
+                'emoji': emoji,
+                'display_name': display_name,
+            },
+        )
+        return user
 
 
 class FamilyPostEditForm(forms.ModelForm):
