@@ -58,6 +58,54 @@ def _parse_image_rotation_values(raw_rotations, expected_count):
 	return rotations
 
 
+def _parse_image_rotation_map(raw_rotations):
+	try:
+		parsed = json.loads(raw_rotations or '{}')
+	except (TypeError, ValueError, json.JSONDecodeError):
+		return {}
+
+	if not isinstance(parsed, dict):
+		return {}
+
+	rotation_map = {}
+	for image_id, degrees in parsed.items():
+		image_id_text = str(image_id)
+		if not image_id_text.isdigit():
+			continue
+		rotation_map[int(image_id_text)] = _normalize_rotation_degrees(degrees)
+	return rotation_map
+
+
+def _rotate_saved_image(image_field, rotation_degrees, quality=80):
+	rotation_degrees = _normalize_rotation_degrees(rotation_degrees)
+	if not rotation_degrees or not image_field:
+		return False
+
+	try:
+		image_field.open('rb')
+		image = Image.open(image_field)
+		image = ImageOps.exif_transpose(image)
+		image = image.rotate(-rotation_degrees, expand=True)
+
+		if image.mode not in ('RGB', 'L'):
+			image = image.convert('RGB')
+
+		buffer = BytesIO()
+		image.save(buffer, format='JPEG', quality=quality, optimize=True)
+		buffer.seek(0)
+
+		file_name = f"{Path(image_field.name).stem}.jpg"
+		image_field.save(file_name, ContentFile(buffer.read()), save=False)
+		return True
+	except (UnidentifiedImageError, OSError, ValueError, AttributeError):
+		return False
+	finally:
+		try:
+			image_field.close()
+		except Exception:
+			pass
+
+
 def _optimize_uploaded_image(uploaded_file, max_size=(1280, 1280), quality=80, rotation_degrees=0):
 	try:
 		uploaded_file.seek(0)
@@ -508,12 +556,15 @@ def edit_post(request, pk):
 				request.POST.get('image_rotations', ''),
 				len(image_files),
 			)
+			main_image_rotation = _normalize_rotation_degrees(request.POST.get('main_image_rotation', 0))
+			existing_image_rotation_map = _parse_image_rotation_map(request.POST.get('existing_image_rotations', ''))
 			uploaded_images = [
 				_optimize_uploaded_image(file_item, rotation_degrees=image_rotations[idx])
 				for idx, file_item in enumerate(image_files)
 			]
 			representative_uploaded_image = None
 			extra_uploaded_images = []
+			promoted_image = None
 
 			if uploaded_images:
 				main_image_index_raw = request.POST.get('main_image_index', '').strip()
@@ -540,12 +591,24 @@ def edit_post(request, pk):
 					promoted_image = remaining_extra_images.pop(0)
 					edited_post.main_image = promoted_image.image
 					delete_extra_image_ids.add(promoted_image.pk)
+					promoted_rotation = existing_image_rotation_map.get(promoted_image.pk, 0)
+					if promoted_rotation:
+						_rotate_saved_image(edited_post.main_image, promoted_rotation)
 				else:
 					form.add_error('main_image', '대표 사진을 삭제하려면 새 사진을 올리거나 기존 추가 사진을 남겨주세요.')
 					return render(request, 'posts/edit_post.html', {'form': form, 'post': post})
+			elif main_image_rotation:
+				_rotate_saved_image(edited_post.main_image, main_image_rotation)
 
 			edited_post.save()
 			_sync_post_tags(edited_post, form.cleaned_data.get('tags'))
+
+			for existing_extra_image in edited_post.images.exclude(pk__in=delete_extra_image_ids):
+				extra_rotation = existing_image_rotation_map.get(existing_extra_image.pk, 0)
+				if not extra_rotation:
+					continue
+				if _rotate_saved_image(existing_extra_image.image, extra_rotation):
+					existing_extra_image.save(update_fields=['image'])
 
 			if delete_extra_image_ids:
 				edited_post.images.filter(pk__in=delete_extra_image_ids).delete()

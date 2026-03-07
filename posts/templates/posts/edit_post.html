@@ -44,11 +44,17 @@
                 <p>
                     현재 대표 사진
                     {% if post.main_image %}
-                    <img class="preview-image" src="{{ post.main_image.url }}" alt="{{ post.title }}">
-                    <label class="preview-main-check" style="margin-top: 6px;">
-                        <input type="checkbox" name="delete_main_image">
-                        대표 사진 삭제
-                    </label>
+                    <img class="preview-image" src="{{ post.main_image.url }}" alt="{{ post.title }}" data-existing-main-preview>
+                    <div class="preview-controls" style="justify-content: flex-start; margin-top: 6px;">
+                        <label class="preview-main-check" style="margin-top: 0;">
+                            <input type="checkbox" name="delete_main_image">
+                            대표 사진 삭제
+                        </label>
+                        <div class="preview-rotate-controls">
+                            <button type="button" class="preview-rotate-btn" data-main-rotate-btn data-rotate-delta="-90" aria-label="대표사진 좌회전">↺</button>
+                            <button type="button" class="preview-rotate-btn" data-main-rotate-btn data-rotate-delta="90" aria-label="대표사진 우회전">↻</button>
+                        </div>
+                    </div>
                     {% else %}
                     <span class="preview-name">대표 사진 없음</span>
                     {% endif %}
@@ -59,11 +65,17 @@
                     <div class="dropzone-previews" style="margin-top: 8px; justify-content: flex-start; grid-template-columns: repeat(auto-fill, minmax(100px, 100px));">
                         {% for image in post.images.all %}
                         <div class="preview-item" style="width: 100px;">
-                            <img class="preview-thumb" style="width: 100px !important; height: 100px !important;" src="{{ image.image.url }}" alt="{{ post.title }} 추가 사진 {{ forloop.counter }}">
-                            <label class="preview-main-check" style="font-size: 0.78rem; white-space: nowrap;">
-                                <input type="checkbox" name="delete_existing_images" value="{{ image.pk }}">
-                                삭제
-                            </label>
+                            <img class="preview-thumb" style="width: 100px !important; height: 100px !important;" src="{{ image.image.url }}" alt="{{ post.title }} 추가 사진 {{ forloop.counter }}" data-existing-image-preview data-image-id="{{ image.pk }}">
+                            <div class="preview-controls">
+                                <label class="preview-main-check" style="font-size: 0.78rem; white-space: nowrap;">
+                                    <input type="checkbox" name="delete_existing_images" value="{{ image.pk }}">
+                                    삭제
+                                </label>
+                                <div class="preview-rotate-controls">
+                                    <button type="button" class="preview-rotate-btn" data-existing-rotate-btn data-image-id="{{ image.pk }}" data-rotate-delta="-90" aria-label="기존 사진 {{ forloop.counter }} 좌회전">↺</button>
+                                    <button type="button" class="preview-rotate-btn" data-existing-rotate-btn data-image-id="{{ image.pk }}" data-rotate-delta="90" aria-label="기존 사진 {{ forloop.counter }} 우회전">↻</button>
+                                </div>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
@@ -81,6 +93,8 @@
                     <div class="dropzone-hidden-input">{{ form.images }}</div>
                     <input type="hidden" name="main_image_index" value="">
                     <input type="hidden" name="image_rotations" value="">
+                    <input type="hidden" name="main_image_rotation" value="0">
+                    <input type="hidden" name="existing_image_rotations" value="{}">
                     <p class="dropzone-files" data-file-list>선택된 파일 없음</p>
                     <p class="dropzone-help" data-main-image-guide>새로 올리는 사진 중 대표사진 체크박스를 선택하세요.</p>
                     <div class="dropzone-previews" data-previews></div>
@@ -100,11 +114,14 @@
             const fileInput = zone.querySelector('input[name="images"]');
             const mainImageIndexInput = zone.querySelector('input[name="main_image_index"]');
             const imageRotationsInput = zone.querySelector('input[name="image_rotations"]');
+            const mainImageRotationInput = document.querySelector('input[name="main_image_rotation"]');
+            const existingImageRotationsInput = document.querySelector('input[name="existing_image_rotations"]');
             const list = zone.querySelector('[data-file-list]');
             const previews = zone.querySelector('[data-previews]');
             if (!fileInput || !list || !previews || !mainImageIndexInput || !imageRotationsInput) return;
             let selectedByDrop = false;
             let imageRotationState = {};
+            let existingImageRotationState = {};
 
             const normalizeRotation = (degrees) => {
                 const value = Number(degrees) || 0;
@@ -116,6 +133,54 @@
                 const rotations = Array.from({ length: fileCount }, (_, idx) => normalizeRotation(imageRotationState[idx] || 0));
                 imageRotationsInput.value = JSON.stringify(rotations);
             };
+
+            const syncExistingRotationInput = () => {
+                if (!existingImageRotationsInput) return;
+                existingImageRotationsInput.value = JSON.stringify(existingImageRotationState);
+            };
+
+            const existingMainPreview = document.querySelector('[data-existing-main-preview]');
+            const mainRotateButtons = document.querySelectorAll('[data-main-rotate-btn]');
+            mainRotateButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const rotateDelta = Number(button.dataset.rotateDelta || 0);
+                    const currentRotation = normalizeRotation(mainImageRotationInput?.value || 0);
+                    const updatedRotation = normalizeRotation(currentRotation + rotateDelta);
+                    if (mainImageRotationInput) {
+                        mainImageRotationInput.value = String(updatedRotation);
+                    }
+                    if (existingMainPreview) {
+                        existingMainPreview.style.transform = `rotate(${updatedRotation}deg)`;
+                    }
+                });
+            });
+
+            const existingRotateButtons = document.querySelectorAll('[data-existing-rotate-btn]');
+            existingRotateButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const imageId = button.dataset.imageId;
+                    if (!imageId) return;
+                    const rotateDelta = Number(button.dataset.rotateDelta || 0);
+                    const currentRotation = normalizeRotation(existingImageRotationState[imageId] || 0);
+                    const updatedRotation = normalizeRotation(currentRotation + rotateDelta);
+                    if (updatedRotation === 0) {
+                        delete existingImageRotationState[imageId];
+                    } else {
+                        existingImageRotationState[imageId] = updatedRotation;
+                    }
+
+                    const targetImage = document.querySelector(`[data-existing-image-preview][data-image-id="${imageId}"]`);
+                    if (targetImage) {
+                        targetImage.style.transform = `rotate(${updatedRotation}deg)`;
+                    }
+                    syncExistingRotationInput();
+                });
+            });
+
+            if (mainImageRotationInput) {
+                mainImageRotationInput.value = '0';
+            }
+            syncExistingRotationInput();
 
             const renderPreviews = () => {
                 previews.innerHTML = '';

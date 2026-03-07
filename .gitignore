@@ -15,6 +15,7 @@ venv/
 # Media uploads
 media/
 staticfiles/
+backups/
 
 # OS/Editor
 .DS_Store
