@@ -452,6 +452,40 @@ body {
     margin: 0;
 }
 
+.preview-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.preview-rotate-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.preview-rotate-btn {
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--text-main);
+    font-size: 0.78rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+
+.preview-rotate-btn:hover {
+    border-color: var(--accent);
+}
+
 .newspaper-main {
     max-width: 1080px;
     margin: 0 auto;

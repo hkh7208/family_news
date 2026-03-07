@@ -80,6 +80,7 @@
                     <p class="dropzone-help size-limit-text">사진과동영상은 파일당 최대 200MB까지 업로드 가능합니다.</p>
                     <div class="dropzone-hidden-input">{{ form.images }}</div>
                     <input type="hidden" name="main_image_index" value="">
+                    <input type="hidden" name="image_rotations" value="">
                     <p class="dropzone-files" data-file-list>선택된 파일 없음</p>
                     <p class="dropzone-help" data-main-image-guide>새로 올리는 사진 중 대표사진 체크박스를 선택하세요.</p>
                     <div class="dropzone-previews" data-previews></div>
@@ -98,16 +99,37 @@
             if (!zone) return;
             const fileInput = zone.querySelector('input[name="images"]');
             const mainImageIndexInput = zone.querySelector('input[name="main_image_index"]');
+            const imageRotationsInput = zone.querySelector('input[name="image_rotations"]');
             const list = zone.querySelector('[data-file-list]');
             const previews = zone.querySelector('[data-previews]');
-            if (!fileInput || !list || !previews || !mainImageIndexInput) return;
+            if (!fileInput || !list || !previews || !mainImageIndexInput || !imageRotationsInput) return;
             let selectedByDrop = false;
+            let imageRotationState = {};
+
+            const normalizeRotation = (degrees) => {
+                const value = Number(degrees) || 0;
+                const normalized = value % 360;
+                return normalized < 0 ? normalized + 360 : normalized;
+            };
+
+            const syncRotationInput = (fileCount) => {
+                const rotations = Array.from({ length: fileCount }, (_, idx) => normalizeRotation(imageRotationState[idx] || 0));
+                imageRotationsInput.value = JSON.stringify(rotations);
+            };
 
             const renderPreviews = () => {
                 previews.innerHTML = '';
                 const files = Array.from(fileInput.files || []);
                 if (!files.length) {
                     mainImageIndexInput.value = '';
+                    imageRotationState = {};
+                    imageRotationsInput.value = '';
+                    return;
+                }
+
+                const currentMainIndex = Number.parseInt(mainImageIndexInput.value, 10);
+                if (!Number.isInteger(currentMainIndex) || currentMainIndex < 0 || currentMainIndex >= files.length) {
+                    mainImageIndexInput.value = '0';
                 }
 
                 files.forEach((file, idx) => {
@@ -120,6 +142,7 @@
                     image.style.width = '64px';
                     image.style.height = '64px';
                     image.style.objectFit = 'cover';
+                    image.style.transform = `rotate(${normalizeRotation(imageRotationState[idx] || 0)}deg)`;
                     image.alt = file.name;
                     image.src = URL.createObjectURL(file);
                     image.onload = () => URL.revokeObjectURL(image.src);
@@ -152,11 +175,46 @@
                     checkboxLabel.appendChild(checkbox);
                     checkboxLabel.appendChild(checkText);
 
+                    const rotateControls = document.createElement('div');
+                    rotateControls.className = 'preview-rotate-controls';
+
+                    const rotateLeftBtn = document.createElement('button');
+                    rotateLeftBtn.type = 'button';
+                    rotateLeftBtn.className = 'preview-rotate-btn';
+                    rotateLeftBtn.setAttribute('aria-label', `${file.name} 좌회전`);
+                    rotateLeftBtn.textContent = '↺';
+                    rotateLeftBtn.addEventListener('click', () => {
+                        imageRotationState[idx] = normalizeRotation((imageRotationState[idx] || 0) - 90);
+                        image.style.transform = `rotate(${imageRotationState[idx]}deg)`;
+                        syncRotationInput(files.length);
+                    });
+
+                    const rotateRightBtn = document.createElement('button');
+                    rotateRightBtn.type = 'button';
+                    rotateRightBtn.className = 'preview-rotate-btn';
+                    rotateRightBtn.setAttribute('aria-label', `${file.name} 우회전`);
+                    rotateRightBtn.textContent = '↻';
+                    rotateRightBtn.addEventListener('click', () => {
+                        imageRotationState[idx] = normalizeRotation((imageRotationState[idx] || 0) + 90);
+                        image.style.transform = `rotate(${imageRotationState[idx]}deg)`;
+                        syncRotationInput(files.length);
+                    });
+
+                    rotateControls.appendChild(rotateLeftBtn);
+                    rotateControls.appendChild(rotateRightBtn);
+
+                    const controls = document.createElement('div');
+                    controls.className = 'preview-controls';
+                    controls.appendChild(checkboxLabel);
+                    controls.appendChild(rotateControls);
+
                     item.appendChild(image);
                     item.appendChild(name);
-                    item.appendChild(checkboxLabel);
+                    item.appendChild(controls);
                     previews.appendChild(item);
                 });
+
+                syncRotationInput(files.length);
             };
 
             const renderList = () => {
@@ -164,6 +222,7 @@
                 if (!files.length) {
                     list.textContent = '선택된 파일 없음';
                     previews.innerHTML = '';
+                    imageRotationsInput.value = '';
                     selectedByDrop = false;
                     return;
                 }
@@ -200,6 +259,9 @@
                 if (clickTarget && clickTarget.closest('.preview-main-check')) {
                     return;
                 }
+                if (clickTarget && clickTarget.closest('.preview-rotate-btn')) {
+                    return;
+                }
                 if (selectedByDrop && (fileInput.files?.length || 0) > 0) {
                     return;
                 }
@@ -213,7 +275,10 @@
                 }
             });
 
-            fileInput.addEventListener('change', renderList);
+            fileInput.addEventListener('change', () => {
+                imageRotationState = {};
+                renderList();
+            });
             renderList();
         })();
     </script>

@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps, UnidentifiedImageError
 from io import BytesIO
+import json
 import os
 from pathlib import Path
 import re
@@ -28,11 +29,43 @@ MAX_IMAGE_SIZE_BYTES = 200 * 1024 * 1024
 FFMPEG_EXECUTABLE = None
 
 
-def _optimize_uploaded_image(uploaded_file, max_size=(1280, 1280), quality=80):
+def _normalize_rotation_degrees(degrees):
+	try:
+		value = int(float(degrees))
+	except (TypeError, ValueError):
+		return 0
+	return value % 360
+
+
+def _parse_image_rotation_values(raw_rotations, expected_count):
+	if expected_count <= 0:
+		return []
+
+	try:
+		parsed = json.loads(raw_rotations or '[]')
+	except (TypeError, ValueError, json.JSONDecodeError):
+		parsed = []
+
+	if not isinstance(parsed, list):
+		parsed = []
+
+	rotations = []
+	for idx in range(expected_count):
+		if idx < len(parsed):
+			rotations.append(_normalize_rotation_degrees(parsed[idx]))
+		else:
+			rotations.append(0)
+	return rotations
+
+
+def _optimize_uploaded_image(uploaded_file, max_size=(1280, 1280), quality=80, rotation_degrees=0):
 	try:
 		uploaded_file.seek(0)
 		image = Image.open(uploaded_file)
 		image = ImageOps.exif_transpose(image)
+		rotation_degrees = _normalize_rotation_degrees(rotation_degrees)
+		if rotation_degrees:
+			image = image.rotate(-rotation_degrees, expand=True)
 		image.thumbnail(max_size, Image.Resampling.LANCZOS)
 
 		if image.mode not in ('RGB', 'L'):
@@ -471,7 +504,14 @@ def edit_post(request, pk):
 				edited_post.images.exclude(pk__in=delete_extra_image_ids).order_by('created_at')
 			)
 
-			uploaded_images = [_optimize_uploaded_image(file_item) for file_item in image_files]
+			image_rotations = _parse_image_rotation_values(
+				request.POST.get('image_rotations', ''),
+				len(image_files),
+			)
+			uploaded_images = [
+				_optimize_uploaded_image(file_item, rotation_degrees=image_rotations[idx])
+				for idx, file_item in enumerate(image_files)
+			]
 			representative_uploaded_image = None
 			extra_uploaded_images = []
 
@@ -618,7 +658,14 @@ def upload_photo(request):
 					messages.error(request, '200메가 이상의 파일은 업로드 불가합니다.')
 					return render(request, 'posts/upload_photo.html', {'form': form})
 
-			uploaded_images = [_optimize_uploaded_image(file_item) for file_item in image_files]
+			image_rotations = _parse_image_rotation_values(
+				request.POST.get('image_rotations', ''),
+				len(image_files),
+			)
+			uploaded_images = [
+				_optimize_uploaded_image(file_item, rotation_degrees=image_rotations[idx])
+				for idx, file_item in enumerate(image_files)
+			]
 
 			uploaded_videos = request.FILES.getlist('videos')
 			compressed_videos = []
