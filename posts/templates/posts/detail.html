@@ -31,7 +31,10 @@
                 · {{ author_emoji }} {{ post.author.username }}
             </p>
             <div class="detail-share-wrap">
-                <button class="menu-btn menu-btn-outline" type="button" data-share-btn>기사 공유하기</button>
+                <button class="menu-btn menu-btn-outline detail-share-icon-btn" type="button" data-share-btn aria-label="공유" title="공유">
+                    <span aria-hidden="true">📤</span>
+                    <span class="visually-hidden">공유</span>
+                </button>
                 <p class="detail-share-feedback" data-share-feedback aria-live="polite"></p>
             </div>
             <h2 class="detail-title">{{ post.title }}</h2>

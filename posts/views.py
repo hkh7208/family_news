@@ -22,6 +22,7 @@ import tempfile
 
 from .forms import FamilyLoginForm, FamilyMemberCreateForm, FamilyMemberPhotoForm, FamilyMemberUpdateForm, FamilyPostCommentForm, FamilyPostEditForm
 from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, Tag
+from .notifications import send_new_post_notification, send_signup_request_notification
 
 
 MAX_VIDEO_SIZE_BYTES = 200 * 1024 * 1024
@@ -679,6 +680,7 @@ def family_signup(request):
 					'display_name': display_name,
 				},
 			)
+			send_signup_request_notification(new_user)
 			messages.success(request, '회원가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.')
 			return redirect('family_login')
 	else:
@@ -808,6 +810,8 @@ def upload_photo(request):
 				extra_post_video = FamilyPostVideo.objects.create(post=new_post, video=compressed_video)
 				if captured_at:
 					FamilyPostVideo.objects.filter(pk=extra_post_video.pk).update(created_at=captured_at)
+
+			send_new_post_notification(new_post, request=request)
 
 			messages.success(request, '사진이 업로드되었습니다.')
 			return redirect('home')

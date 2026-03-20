@@ -41,3 +41,36 @@ GitHub 저장소 `Settings > Secrets and variables > Actions > New repository se
 ## 5) 수동 실행
 
 GitHub `Actions` 탭에서 `Deploy to Synology NAS` 워크플로를 수동 실행할 수 있습니다.
+
+## 6) PowerShell로 배포 상태 폴링 + 실패 로그 자동 저장
+
+VS Code에서 `gh run watch`가 화면 갱신 때문에 멈춘 것처럼 보일 때, 아래 스크립트를 사용하세요.
+
+```powershell
+# 최신 deploy-nas 실행 자동 추적
+powershell -ExecutionPolicy Bypass -File .\scripts\watch_nas_deploy.ps1
+
+# 특정 RunId 추적
+powershell -ExecutionPolicy Bypass -File .\scripts\watch_nas_deploy.ps1 -RunId 23363304377
+
+# 폴링/타임아웃 조정
+powershell -ExecutionPolicy Bypass -File .\scripts\watch_nas_deploy.ps1 -IntervalSeconds 5 -TimeoutMinutes 30
+
+# 실패 로그 패턴 요약(502/504/Health check/fatal 등)
+powershell -ExecutionPolicy Bypass -File .\scripts\watch_nas_deploy.ps1 -SummarizeFailedLog
+```
+
+실패 시 아래 경로에 로그를 자동 저장합니다.
+
+- `logs/deploy/run_<RunId>_failed_<timestamp>.log`
+- `logs/deploy/run_<RunId>_full_<timestamp>.log`
+
+## 7) VS Code Task로 원클릭 실행
+
+- `Terminal > Run Task...`에서 아래를 선택해 실행
+- `NAS Deploy: Watch Latest`
+- `NAS Deploy: Watch by RunId`
+
+관련 설정 파일:
+
+- `.vscode/tasks.json`
