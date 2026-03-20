@@ -30,6 +30,10 @@
                 {% endif %}
                 · {{ author_emoji }} {{ post.author.username }}
             </p>
+            <div class="detail-share-wrap">
+                <button class="menu-btn menu-btn-outline" type="button" data-share-btn>기사 공유하기</button>
+                <p class="detail-share-feedback" data-share-feedback aria-live="polite"></p>
+            </div>
             <h2 class="detail-title">{{ post.title }}</h2>
             {% if slider_images %}
             <div class="detail-image-wrap detail-slider" data-slider>
@@ -206,6 +210,70 @@
 
                 startAutoPlay();
             });
+
+            const shareBtn = document.querySelector('[data-share-btn]');
+            const shareFeedback = document.querySelector('[data-share-feedback]');
+            const shareData = {
+                title: document.title,
+                text: '{{ post.title|escapejs }}',
+                url: window.location.href,
+            };
+
+            const showFeedback = (message, isError = false) => {
+                if (!shareFeedback) return;
+                shareFeedback.textContent = message;
+                shareFeedback.classList.toggle('is-error', isError);
+            };
+
+            const copyUrlToClipboard = async () => {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(shareData.url);
+                    return true;
+                }
+
+                const fallbackInput = document.createElement('textarea');
+                fallbackInput.value = shareData.url;
+                fallbackInput.setAttribute('readonly', '');
+                fallbackInput.style.position = 'absolute';
+                fallbackInput.style.left = '-9999px';
+                document.body.appendChild(fallbackInput);
+                fallbackInput.select();
+                fallbackInput.setSelectionRange(0, fallbackInput.value.length);
+                const copied = document.execCommand('copy');
+                document.body.removeChild(fallbackInput);
+                return copied;
+            };
+
+            const handleShare = async () => {
+                const isMobile = window.matchMedia('(max-width: 900px)').matches;
+                showFeedback('');
+
+                if (isMobile && navigator.share) {
+                    try {
+                        await navigator.share(shareData);
+                        showFeedback('공유가 완료되었어요.');
+                        return;
+                    } catch (error) {
+                        if (error && error.name === 'AbortError') {
+                            showFeedback('공유가 취소되었어요.', true);
+                            return;
+                        }
+                    }
+                }
+
+                try {
+                    const copied = await copyUrlToClipboard();
+                    if (copied) {
+                        showFeedback('현재 기사 링크를 복사했어요.');
+                    } else {
+                        showFeedback('링크 복사에 실패했어요. 길게 눌러서 복사해주세요.', true);
+                    }
+                } catch (error) {
+                    showFeedback('링크 복사에 실패했어요. 길게 눌러서 복사해주세요.', true);
+                }
+            };
+
+            shareBtn?.addEventListener('click', handleShare);
         })();
     </script>
     {% include 'posts/_site_footer.html' %}

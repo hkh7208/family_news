@@ -714,6 +714,25 @@ body {
     margin: 0 0 8px;
 }
 
+.detail-share-wrap {
+    margin: 10px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.detail-share-feedback {
+    margin: 0;
+    font-size: 0.86rem;
+    color: var(--text-sub);
+}
+
+.detail-share-feedback.is-error {
+    color: #b42318;
+}
+
 .detail-title {
     margin: 8px 0 14px;
     font-size: 2rem;
@@ -1235,6 +1254,19 @@ body {
     .detail-top-actions .menu-btn {
         padding: 6px 10px;
         font-size: 0.8rem;
+    }
+
+    .detail-share-wrap {
+        gap: 6px;
+    }
+
+    .detail-share-wrap .menu-btn {
+        width: 100%;
+    }
+
+    .detail-share-feedback {
+        width: 100%;
+        text-align: center;
     }
 
     .related-grid {
