@@ -11,12 +11,7 @@ services:
     command: >
       sh -c "python manage.py migrate --settings=config.settings.prod &&
              python manage.py collectstatic --noinput --settings=config.settings.prod &&
-             DJANGO_SETTINGS_MODULE=config.settings.prod gunicorn config.wsgi:application
-             --bind 0.0.0.0:8000
-             --workers 3
-             --timeout 120
-             --max-requests 1000
-             --max-requests-jitter 100"
+             DJANGO_SETTINGS_MODULE=config.settings.prod gunicorn config.wsgi:application --config /app/gunicorn.conf.py"
     volumes:
       - /volume1/web/family_news/app:/app
       - /volume1/web/family_news/media:/app/media
