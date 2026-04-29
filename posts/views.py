@@ -25,6 +25,18 @@ from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPo
 from .notifications import send_new_post_notification, send_signup_request_notification
 
 
+def health_check(request):
+    """간단한 헬스체크 엔드포인트 - Docker healthcheck 및 모니터링용"""
+    from django.db import connection
+    try:
+        connection.ensure_connection()
+        db_ok = True
+    except Exception:
+        db_ok = False
+    status = 200 if db_ok else 503
+    return JsonResponse({'status': 'ok' if db_ok else 'db_error', 'db': db_ok}, status=status)
+
+
 MAX_VIDEO_SIZE_BYTES = 200 * 1024 * 1024
 MAX_IMAGE_SIZE_BYTES = 200 * 1024 * 1024
 FFMPEG_EXECUTABLE = None
