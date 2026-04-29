@@ -16,8 +16,7 @@ services:
              --workers 3
              --timeout 120
              --max-requests 1000
-             --max-requests-jitter 100
-             --preload"
+             --max-requests-jitter 100"
     volumes:
       - /volume1/web/family_news/app:/app
       - /volume1/web/family_news/media:/app/media
