@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: family_news_web
     env_file:
       - .env
     command: >
@@ -30,7 +29,6 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
-    container_name: family_news_nginx
     depends_on:
       web:
         condition: service_healthy
