@@ -24,21 +24,33 @@
     </div>
 
     <section class="gallery-wrap">
-        <div class="gallery-grid">
+        <div class="gallery-slider" data-gallery-slider>
             {% for item in gallery_items %}
-            <a class="gallery-card" href="{% url 'post_detail' item.post.pk %}">
-                <img src="{{ item.image_url }}" alt="{{ item.post.title }}">
-                <div class="gallery-card-body">
+            <article class="gallery-slide{% if forloop.first %} is-active{% endif %}">
+                <a class="gallery-slide-image-link" href="{% url 'post_detail' item.post.pk %}">
+                    <img src="{{ item.image_url }}" alt="{{ item.post.title }}">
+                </a>
+                <div class="gallery-slide-body">
                     <p class="gallery-meta">{{ item.created_at|date:'Y.m.d H:i' }} · {{ item.emoji }} {{ item.post.author.username }}</p>
-                    <h3>{{ item.post.title }}</h3>
+                    <a class="gallery-slide-title" href="{% url 'post_detail' item.post.pk %}">{{ item.post.title }}</a>
                 </div>
-            </a>
+            </article>
             {% empty %}
             <div class="empty-card">
                 <h3>아직 등록된 사진이 없습니다.</h3>
                 <p>뉴스추가에서 사진을 올리면 갤러리에 자동 표시됩니다.</p>
             </div>
             {% endfor %}
+
+            {% if gallery_items|length > 1 %}
+            <button class="gallery-nav gallery-nav-prev" type="button" data-gallery-prev>&lsaquo;</button>
+            <button class="gallery-nav gallery-nav-next" type="button" data-gallery-next>&rsaquo;</button>
+            <div class="gallery-dots" data-gallery-dots>
+                {% for item in gallery_items %}
+                <button class="gallery-dot{% if forloop.first %} is-active{% endif %}" type="button" data-gallery-dot="{{ forloop.counter0 }}"></button>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         {% if page_obj.paginator.num_pages > 1 %}
@@ -55,6 +67,43 @@
         </div>
         {% endif %}
     </section>
+
+    <script>
+        (function () {
+            const slider = document.querySelector('[data-gallery-slider]');
+            if (!slider) return;
+
+            const slides = Array.from(slider.querySelectorAll('.gallery-slide'));
+            const dots = Array.from(slider.querySelectorAll('[data-gallery-dot]'));
+            const prevBtn = slider.querySelector('[data-gallery-prev]');
+            const nextBtn = slider.querySelector('[data-gallery-next]');
+            if (slides.length <= 1) return;
+
+            let currentIndex = 0;
+
+            const render = () => {
+                slides.forEach((slide, idx) => slide.classList.toggle('is-active', idx === currentIndex));
+                dots.forEach((dot, idx) => dot.classList.toggle('is-active', idx === currentIndex));
+            };
+
+            prevBtn?.addEventListener('click', () => {
+                currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+                render();
+            });
+
+            nextBtn?.addEventListener('click', () => {
+                currentIndex = (currentIndex + 1) % slides.length;
+                render();
+            });
+
+            dots.forEach((dot, idx) => {
+                dot.addEventListener('click', () => {
+                    currentIndex = idx;
+                    render();
+                });
+            });
+        })();
+    </script>
 
     {% include 'posts/_site_footer.html' %}
 </body>
