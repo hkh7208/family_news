@@ -65,9 +65,12 @@ jobs:
             git reset --hard origin/main
 
             # Recover from stale container name conflicts on DSM Docker Engine.
+            docker compose -f docker-compose.nas.yml down --remove-orphans 2>/dev/null || true
             docker rm -f 78556dddaf33_family_news_web 2>/dev/null || true
             docker rm -f family_news_web 2>/dev/null || true
             docker rm -f family_news_nginx 2>/dev/null || true
+            docker rm -f app-web-1 2>/dev/null || true
+            docker rm -f app-nginx-1 2>/dev/null || true
 
             docker compose -f docker-compose.nas.yml up -d --build
 
