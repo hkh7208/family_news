@@ -26,6 +26,9 @@
             {% endif %}
             <form method="post">
                 {% csrf_token %}
+                {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+                {% endif %}
                 {{ form.as_p }}
                 <div class="form-actions">
                     <button class="menu-btn" type="submit">로그인</button>

@@ -8,6 +8,7 @@ from django.db.models import Q, Case, When, IntegerField, Value, Count
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -650,14 +651,18 @@ def delete_post(request, pk):
 
 
 def family_login(request):
+	next_url = request.POST.get('next') or request.GET.get('next') or ''
+	if next_url and not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+		next_url = ''
+
 	if request.user.is_authenticated:
-		return redirect('home')
+		return redirect(next_url or 'home')
 
 	if request.method == 'POST':
 		form = FamilyLoginForm(request, data=request.POST)
 		if form.is_valid():
 			login(request, form.get_user())
-			return redirect('home')
+			return redirect(next_url or 'home')
 		username = (request.POST.get('username') or '').strip()
 		password = request.POST.get('password') or ''
 		if username and password:
@@ -670,7 +675,7 @@ def family_login(request):
 	else:
 		form = FamilyLoginForm(request)
 
-	return render(request, 'posts/login.html', {'form': form})
+	return render(request, 'posts/login.html', {'form': form, 'next': next_url})
 
 
 def family_signup(request):

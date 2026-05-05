@@ -29,6 +29,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'posts.middleware.GlobalLoginRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -103,3 +104,20 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'no-repl
 
 SIGNUP_REQUEST_NOTIFY_EMAIL = os.getenv('SIGNUP_REQUEST_NOTIFY_EMAIL', 'hkh7208@poscodx.com')
 SITE_BASE_URL = os.getenv('SITE_BASE_URL', '')
+
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/'
+
+# Keep operational/entry routes public while everything else requires login.
+GLOBAL_LOGIN_EXEMPT_URL_NAMES = [
+    'family_login',
+    'family_signup',
+    'check_username',
+    'health_check',
+]
+GLOBAL_LOGIN_EXEMPT_PATH_PREFIXES = [
+    '/admin/',
+    '/static/',
+    '/media/',
+    '/favicon.ico',
+]
