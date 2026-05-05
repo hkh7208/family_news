@@ -1,10 +1,13 @@
 from django.urls import path
 
-from .views import add_comment, add_family_member, approve_member, check_username, delete_member, delete_post, edit_member, edit_post, family_login, family_logout, family_signup, home, member_management, news_search, pending_approvals, post_detail, upload_photo
+from .views import add_comment, add_family_member, approve_member, check_username, delete_member, delete_post, edit_member, edit_post, family_login, family_logout, family_signup, home, member_management, news_search, newspaper_detail, newspaper_hall, pending_approvals, photo_gallery, post_detail, upload_photo
 
 
 urlpatterns = [
     path('', home, name='home'),
+    path('gallery/', photo_gallery, name='photo_gallery'),
+    path('newspapers/', newspaper_hall, name='newspaper_hall'),
+    path('newspapers/<int:newspaper_id>/', newspaper_detail, name='newspaper_detail'),
     path('search/', news_search, name='news_search'),
     path('posts/<int:pk>/', post_detail, name='post_detail'),
     path('posts/<int:pk>/comments/add/', add_comment, name='add_comment'),

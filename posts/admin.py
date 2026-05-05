@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, Tag
+from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, QuarterlyNewspaper, Tag
 
 
 class FamilyMemberProfileInline(admin.StackedInline):
@@ -89,6 +89,13 @@ class FamilyPostCommentAdmin(admin.ModelAdmin):
 	list_display = ('post', 'author', 'created_at')
 	list_filter = ('created_at',)
 	search_fields = ('post__title', 'author__username', 'content')
+
+
+@admin.register(QuarterlyNewspaper)
+class QuarterlyNewspaperAdmin(admin.ModelAdmin):
+	list_display = ('title', 'year', 'quarter', 'article_count', 'generated_at')
+	list_filter = ('year', 'quarter')
+	search_fields = ('title',)
 
 
 try:

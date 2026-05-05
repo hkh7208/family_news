@@ -21,6 +21,8 @@
     <div class="content-actions">
         {% if user.is_authenticated %}
         <span class="user-name">{{ current_user_emoji }} {{ user.username }}</span>
+        <a class="menu-btn menu-btn-outline" href="{% url 'photo_gallery' %}">사진갤러리</a>
+        <a class="menu-btn menu-btn-outline" href="{% url 'newspaper_hall' %}">신문마당</a>
         <a class="menu-btn" href="{% url 'upload_photo' %}">뉴스추가</a>
         <a class="menu-btn menu-btn-outline" href="{% url 'news_search' %}">뉴스검색</a>
         {% if user.username == 'bihong' %}

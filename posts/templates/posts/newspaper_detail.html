@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ newspaper.title }} | 태선,제인이네 가족신문</title>
+    <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-top">
+            <div class="site-title-wrap">
+                <img class="site-title-icon" src="{% static 'posts/icons/newspaper.png' %}" alt="신문 아이콘" width="70" height="70">
+                <h1>태선,제인이네 가족신문</h1>
+            </div>
+        </div>
+        <p>분기신문 보기</p>
+    </header>
+
+    <div class="content-actions">
+        <a class="menu-btn menu-btn-outline" href="{% url 'newspaper_hall' %}">신문마당</a>
+        <a class="menu-btn menu-btn-outline" href="{% url 'home' %}">홈으로</a>
+    </div>
+
+    <section class="newspaper-view-wrap">
+        <div class="newspaper-view-card">
+            <h2>{{ newspaper.title }}</h2>
+            <p class="meta">{{ newspaper.generated_at|date:'Y.m.d H:i' }} · 기사 {{ newspaper.article_count }}건</p>
+            <div class="newspaper-pdf-frame">
+                <iframe src="{{ newspaper.pdf_file.url }}#view=FitH" title="{{ newspaper.title }} PDF" loading="lazy"></iframe>
+            </div>
+            <div class="form-actions">
+                <a class="menu-btn" href="{{ newspaper.pdf_file.url }}" target="_blank" rel="noopener">PDF 새창으로 보기</a>
+            </div>
+        </div>
+    </section>
+
+    {% include 'posts/_site_footer.html' %}
+</body>
+</html>

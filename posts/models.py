@@ -3,6 +3,10 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+def quarterly_pdf_upload_to(instance, filename):
+    return f'newspapers/{instance.year}/q{instance.quarter}/{filename}'
+
+
 class Tag(models.Model):
     name = models.CharField(max_length=30, unique=True, verbose_name='태그명')
 
@@ -116,3 +120,22 @@ class FamilyPostComment(models.Model):
 
     def __str__(self):
         return f'{self.post.title} - {self.author.username}'
+
+
+class QuarterlyNewspaper(models.Model):
+    year = models.PositiveSmallIntegerField(verbose_name='연도')
+    quarter = models.PositiveSmallIntegerField(verbose_name='분기')
+    title = models.CharField(max_length=120, verbose_name='신문 제목')
+    article_count = models.PositiveIntegerField(default=0, verbose_name='기사 수')
+    pdf_file = models.FileField(upload_to=quarterly_pdf_upload_to, verbose_name='신문 PDF')
+    generated_at = models.DateTimeField(auto_now=True, verbose_name='생성일')
+
+    class Meta:
+        ordering = ['-year', '-quarter']
+        unique_together = [('year', 'quarter')]
+        verbose_name = '분기 신문'
+        verbose_name_plural = '분기 신문'
+
+    def __str__(self):
+        short_year = str(self.year)[-2:]
+        return f'{short_year}년 {self.quarter}분기 신문'

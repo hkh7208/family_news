@@ -22,7 +22,8 @@ import subprocess
 import tempfile
 
 from .forms import FamilyLoginForm, FamilyMemberCreateForm, FamilyMemberPhotoForm, FamilyMemberUpdateForm, FamilyPostCommentForm, FamilyPostEditForm
-from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, Tag
+from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, QuarterlyNewspaper, Tag
+from .newspaper_service import sync_all_quarterly_newspapers
 from .notifications import send_new_post_notification, send_signup_request_notification
 
 
@@ -467,6 +468,59 @@ def news_search(request):
 			'result_items': result_items,
 		},
 	)
+
+
+def photo_gallery(request):
+	main_image_items = [
+		{
+			'post': post,
+			'image_url': post.main_image.url,
+			'created_at': post.created_at,
+			'emoji': _get_user_emoji(post.author),
+		}
+		for post in FamilyPost.objects.select_related('author').order_by('-created_at')
+		if post.main_image
+	]
+
+	extra_image_items = [
+		{
+			'post': image_item.post,
+			'image_url': image_item.image.url,
+			'created_at': image_item.created_at,
+			'emoji': _get_user_emoji(image_item.post.author),
+		}
+		for image_item in FamilyPostImage.objects.select_related('post', 'post__author').order_by('-created_at')
+		if image_item.image
+	]
+
+	gallery_items = sorted(
+		main_image_items + extra_image_items,
+		key=lambda item: item['created_at'],
+		reverse=True,
+	)
+
+	paginator = Paginator(gallery_items, 24)
+	page_obj = paginator.get_page(request.GET.get('page'))
+
+	return render(
+		request,
+		'posts/photo_gallery.html',
+		{
+			'page_obj': page_obj,
+			'gallery_items': page_obj.object_list,
+		},
+	)
+
+
+def newspaper_hall(request):
+	sync_all_quarterly_newspapers()
+	newspapers = QuarterlyNewspaper.objects.all()
+	return render(request, 'posts/newspaper_hall.html', {'newspapers': newspapers})
+
+
+def newspaper_detail(request, newspaper_id):
+	newspaper = get_object_or_404(QuarterlyNewspaper, pk=newspaper_id)
+	return render(request, 'posts/newspaper_detail.html', {'newspaper': newspaper})
 
 
 def post_detail(request, pk):
