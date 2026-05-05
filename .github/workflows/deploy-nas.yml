@@ -64,6 +64,11 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            # Recover from stale container name conflicts on DSM Docker Engine.
+            docker rm -f 78556dddaf33_family_news_web 2>/dev/null || true
+            docker rm -f family_news_web 2>/dev/null || true
+            docker rm -f family_news_nginx 2>/dev/null || true
+
             docker compose -f docker-compose.nas.yml up -d --build
 
             docker compose -f docker-compose.nas.yml ps
