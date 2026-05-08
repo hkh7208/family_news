@@ -79,7 +79,7 @@ jobs:
             docker rm -f app-web-1 2>/dev/null || true
             docker rm -f app-nginx-1 2>/dev/null || true
 
-            docker compose -f docker-compose.nas.yml up -d --build
+            docker compose -f docker-compose.nas.yml up -d
 
             docker compose -f docker-compose.nas.yml ps
           EOF
