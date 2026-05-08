@@ -50,7 +50,7 @@ jobs:
           set -euxo pipefail
           TARGET_DIR="${NAS_APP_DIR:-/volume1/web/family_news/app}"
 
-          ssh -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
+          timeout 600s ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
             set -euxo pipefail
             cd "${TARGET_DIR}"
 
@@ -94,7 +94,7 @@ jobs:
           set -euxo pipefail
           TARGET_DIR="${NAS_APP_DIR:-/volume1/web/family_news/app}"
 
-          ssh -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
+          timeout 180s ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
             set -euxo pipefail
             cd "${TARGET_DIR}"
 
@@ -134,7 +134,7 @@ jobs:
           set -euxo pipefail
           TARGET_DIR="${NAS_APP_DIR:-/volume1/web/family_news/app}"
 
-          ssh -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
+          timeout 180s ssh -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -p "${NAS_PORT}" "${NAS_USER}@${NAS_HOST}" << EOF
             set -euxo pipefail
             cd "${TARGET_DIR}"
 
