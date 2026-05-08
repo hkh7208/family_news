@@ -5,6 +5,10 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+concurrency:
+  group: nas-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -61,7 +65,10 @@ jobs:
 
             git config --global --add safe.directory "\$(pwd)"
 
-            git fetch origin main
+            # Recover from stale ref locks caused by interrupted/concurrent runs.
+            rm -f .git/refs/remotes/origin/main.lock || true
+            git remote prune origin || true
+            git fetch --prune origin main
             git reset --hard origin/main
 
             # Recover from stale container name conflicts on DSM Docker Engine.
