@@ -12,6 +12,9 @@ class GlobalLoginRequiredMiddleware:
         self.public_path_prefixes = tuple(getattr(settings, 'GLOBAL_LOGIN_EXEMPT_PATH_PREFIXES', []))
 
     def __call__(self, request):
+        if getattr(settings, 'DISABLE_LOGIN_REQUIRED', False):
+            return self.get_response(request)
+
         if request.user.is_authenticated:
             return self.get_response(request)
 

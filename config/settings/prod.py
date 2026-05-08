@@ -8,6 +8,7 @@ def _csv_env(name, default=''):
 
 
 DEBUG = False
+DISABLE_LOGIN_REQUIRED = True
 ALLOWED_HOSTS = _csv_env(
 	'DJANGO_ALLOWED_HOSTS',
 	'127.0.0.1,localhost,192.168.0.250,.synology.me,.snology.me'

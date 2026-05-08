@@ -1,6 +1,6 @@
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth import login, logout
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.db import OperationalError, ProgrammingError
@@ -25,6 +25,19 @@ from .forms import FamilyLoginForm, FamilyMemberCreateForm, FamilyMemberPhotoFor
 from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, QuarterlyNewspaper, Tag
 from .newspaper_service import sync_all_quarterly_newspapers
 from .notifications import send_new_post_notification, send_signup_request_notification
+
+
+if getattr(settings, 'DISABLE_LOGIN_REQUIRED', False):
+	def login_required(view_func=None, **decorator_kwargs):
+		if view_func is None:
+			def decorator(inner_view_func):
+				return inner_view_func
+
+			return decorator
+
+		return view_func
+else:
+	from django.contrib.auth.decorators import login_required
 
 
 def health_check(request):
