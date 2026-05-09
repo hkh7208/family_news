@@ -5,100 +5,156 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>태선,제인이네 가족신문</title>
-    <link rel="stylesheet" href="{% static 'posts/home.css' %}?v=20260302b">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Work+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'posts/home_heritage.css' %}?v=20260510a">
 </head>
-<body>
-    <header class="site-header">
-        <div class="header-top">
-            <div class="site-title-wrap">
-                <img class="site-title-icon" src="{% static 'posts/icons/newspaper.png' %}" alt="신문 아이콘" width="70" height="70">
-                <h1>태선,제인이네 가족신문</h1>
+<body class="paper-texture">
+    <header class="masthead-wrap">
+        <div class="masthead-top">
+            <span class="edition-label">Established 2026</span>
+            <div class="masthead-actions">
+                {% if user.is_authenticated %}
+                <span class="user-pill">{{ current_user_emoji }} {{ user.username }}</span>
+                <a class="action-btn" href="{% url 'family_logout' %}">로그아웃</a>
+                {% else %}
+                <a class="action-btn action-btn-outline" href="{% url 'family_signup' %}">회원가입</a>
+                <a class="action-btn" href="{% url 'family_login' %}">로그인</a>
+                {% endif %}
             </div>
         </div>
-        <p>태선,제인이네 소중한 일상을 담는 디지털 매거진</p>
+
+        <div class="masthead-title">
+            <h1>태선,제인이네 가족신문</h1>
+            <p>가족의 오늘을 남기는 우리 집 디지털 매거진</p>
+        </div>
+
+        <nav class="masthead-nav">
+            <a href="{% url 'home' %}" class="active">Home</a>
+            <a href="{% url 'news_search' %}">Search</a>
+            <a href="{% url 'photo_gallery' %}">Gallery</a>
+            <a href="{% url 'newspaper_hall' %}">Archive</a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'upload_photo' %}">Write</a>
+            {% endif %}
+            {% if user.username == 'bihong' %}
+            <a href="{% url 'pending_approvals' %}">Approvals</a>
+            <a href="{% url 'member_management' %}">Members</a>
+            {% endif %}
+        </nav>
     </header>
 
-    <div class="content-actions">
-        {% if user.is_authenticated %}
-        <span class="user-name">{{ current_user_emoji }} {{ user.username }}</span>
-        <a class="menu-btn menu-btn-outline" href="{% url 'photo_gallery' %}">사진갤러리</a>
-        <a class="menu-btn menu-btn-outline" href="{% url 'newspaper_hall' %}">신문마당</a>
-        <a class="menu-btn" href="{% url 'upload_photo' %}">뉴스추가</a>
-        <a class="menu-btn menu-btn-outline" href="{% url 'news_search' %}">뉴스검색</a>
-        {% if user.username == 'bihong' %}
-        <a class="menu-btn menu-btn-outline" href="{% url 'pending_approvals' %}">가입승인</a>
-        <a class="menu-btn menu-btn-outline" href="{% url 'member_management' %}">회원관리</a>
-        <a class="menu-btn menu-btn-outline" href="{% url 'add_family_member' %}">가족추가</a>
-        {% endif %}
-        <a class="menu-btn menu-btn-outline" href="{% url 'family_logout' %}">로그아웃</a>
-        {% else %}
-        <a class="menu-btn menu-btn-outline" href="{% url 'news_search' %}">뉴스검색</a>
-        <a class="menu-btn menu-btn-outline" href="{% url 'family_signup' %}">회원가입</a>
-        <a class="menu-btn" href="{% url 'family_login' %}">로그인</a>
-        {% endif %}
-    </div>
-
-    <section class="newspaper-main">
-        <div class="lead-story">
-            <p class="paper-kicker">가족 속보</p>
-            {% if hero_post %}
-            <a class="lead-story-link" href="{% url 'post_detail' hero_post.pk %}">
-                <h2>{{ hero_post.title }}</h2>
-                <p class="lead-meta">
-                    <span class="lead-meta-label">작성시간</span> {{ hero_post.created_at|date:'Y.m.d H:i' }}
-                    ·
-                    <span class="lead-meta-label">작성자</span> <span class="hero-author-emoji">{{ hero_author_emoji }}</span> {{ hero_post.author.username }}
-                </p>
-                {% if hero_post.main_image %}
-                <div class="lead-image-frame">
-                    <img src="{{ hero_post.main_image.url }}" alt="{{ hero_post.title }}">
-                </div>
+    <main class="layout-shell">
+        <section class="hero-grid">
+            <article class="hero-story">
+                <p class="section-kicker">Feature Story</p>
+                {% if hero_post %}
+                <a class="hero-link" href="{% url 'post_detail' hero_post.pk %}">
+                    {% if hero_post.main_image %}
+                    <img src="{{ hero_post.main_image.url }}" alt="{{ hero_post.title }}" class="hero-image">
+                    {% else %}
+                    <div class="hero-image hero-image-placeholder">대표 이미지가 아직 없어요</div>
+                    {% endif %}
+                    <div class="hero-copy">
+                        <h2>{{ hero_post.title }}</h2>
+                        <p class="hero-meta">
+                            {{ hero_post.created_at|date:'Y.m.d H:i' }} · {{ hero_author_emoji }} {{ hero_post.author.username }}
+                        </p>
+                        <p class="hero-summary">{{ hero_post.content|truncatechars:180 }}</p>
+                    </div>
+                </a>
+                {% else %}
+                <h2>오늘의 대표 기사가 아직 없어요</h2>
+                <p class="hero-summary">첫 게시글을 등록하면 이 영역에 1면 기사처럼 표시됩니다.</p>
                 {% endif %}
-                <p class="lead-summary">{{ hero_post.content|truncatechars:160 }}</p>
-            </a>
-            {% else %}
-            <h2>오늘의 가족 메인 소식이 아직 없어요</h2>
-            <p class="lead-summary">첫 게시글을 등록하면 신문 1면 메인 기사처럼 이곳에 크게 표시됩니다.</p>
-            {% endif %}
-        </div>
-
-        <aside class="paper-side">
-            <h3>주요 소식</h3>
-            <ol class="side-list">
-                {% for item in major_items %}
-                <li>
-                    <a class="side-list-link" href="{% url 'post_detail' item.post.pk %}">{{ item.emoji }} {{ item.post.title }}</a>
-                    <span class="comment-stat">💬 {{ item.post.comment_count|default:0 }}</span>
-                </li>
-                {% empty %}
-                <li>아직 등록된 소식이 없습니다.</li>
-                {% endfor %}
-            </ol>
-        </aside>
-    </section>
-
-    <main class="magazine-grid">
-        {% for item in post_items %}
-        <a class="post-card-link" href="{% url 'post_detail' item.post.pk %}">
-            <article class="post-card">
-                {% if item.post.main_image %}
-                <img src="{{ item.post.main_image.url }}" alt="{{ item.post.title }}">
-                {% endif %}
-                <div class="post-body">
-                    <p class="meta">{{ item.post.created_at|date:'Y.m.d' }} · {{ item.emoji }} {{ item.post.author.username }}</p>
-                    <h3>{{ item.post.title }}</h3>
-                    <p>{{ item.post.content|truncatechars:110 }}</p>
-                    <p class="post-stats"><span class="comment-stat">💬 {{ item.post.comment_count|default:0 }}</span></p>
-                </div>
             </article>
-        </a>
-        {% empty %}
-        <div class="empty-card">
-            <h3>아직 등록된 가족 소식이 없어요</h3>
-            <p>첫 게시글과 사진을 추가하면 카드 형태로 깔끔하게 표시됩니다.</p>
-        </div>
-        {% endfor %}
+        </section>
+
+        <section class="story-feed">
+            <div class="section-head">
+                <h3>The Latest Journal</h3>
+            </div>
+            <div class="story-grid">
+                {% for item in post_items|slice:":9" %}
+                <article class="story-card">
+                    <a href="{% url 'post_detail' item.post.pk %}">
+                        {% if item.post.main_image %}
+                        <img src="{{ item.post.main_image.url }}" alt="{{ item.post.title }}">
+                        {% else %}
+                        <div class="story-thumb-placeholder">No Image</div>
+                        {% endif %}
+                        <p class="story-label">{{ item.post.created_at|date:'Y.m.d' }} · {{ item.emoji }} {{ item.post.author.username }}</p>
+                        <h4>{{ item.post.title }}</h4>
+                        <p class="story-summary">{{ item.post.content|truncatechars:120 }}</p>
+                        <p class="story-meta">댓글 {{ item.post.comment_count|default:0 }}개</p>
+                    </a>
+                </article>
+                {% empty %}
+                <article class="story-empty">
+                    <h4>등록된 기사가 아직 없습니다.</h4>
+                    <p>뉴스를 추가하면 이 섹션에 카드 형태로 표시됩니다.</p>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
     </main>
-    {% include 'posts/_site_footer.html' %}
+
+    <footer class="site-footer">
+        오늘의 추억이 내일의 이야기가 됩니다 · 태선,제인이네 가족신문. since 2026
+    </footer>
+
+    <script>
+    (function () {
+        var heroImage = document.querySelector('.hero-link .hero-image');
+        var heroLink = document.querySelector('.hero-link');
+
+        if (!heroImage || !heroLink || heroImage.classList.contains('hero-image-placeholder')) {
+            return;
+        }
+
+        function applyHeroLayout() {
+            var naturalWidth = heroImage.naturalWidth || 1;
+            var naturalHeight = heroImage.naturalHeight || 1;
+            var renderedHeight = heroImage.getBoundingClientRect().height || naturalHeight;
+            var ratio = naturalHeight / naturalWidth;
+
+            heroLink.classList.remove('is-landscape', 'is-portrait', 'is-tall-image');
+
+            if (naturalWidth > naturalHeight) {
+                heroLink.classList.add('is-landscape');
+            } else {
+                heroLink.classList.add('is-portrait');
+            }
+
+            if (ratio >= 1.3 || renderedHeight >= 480) {
+                heroLink.classList.add('is-tall-image');
+            }
+
+            var summaryLines = 7;
+            if (renderedHeight >= 620) {
+                summaryLines = 15;
+            } else if (renderedHeight >= 560) {
+                summaryLines = 13;
+            } else if (renderedHeight >= 500) {
+                summaryLines = 11;
+            } else if (renderedHeight >= 430) {
+                summaryLines = 10;
+            } else if (renderedHeight >= 360) {
+                summaryLines = 9;
+            }
+
+            heroLink.style.setProperty('--hero-summary-lines', String(summaryLines));
+        }
+
+        if (heroImage.complete) {
+            applyHeroLayout();
+        } else {
+            heroImage.addEventListener('load', applyHeroLayout, { once: true });
+        }
+
+        window.addEventListener('resize', applyHeroLayout);
+    })();
+    </script>
 </body>
 </html>
