@@ -121,3 +121,33 @@ GLOBAL_LOGIN_EXEMPT_PATH_PREFIXES = [
     '/media/',
     '/favicon.ico',
 ]
+
+# Logging configuration for debugging uploads
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'upload.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'posts.upload': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

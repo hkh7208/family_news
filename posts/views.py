@@ -15,12 +15,16 @@ from django.views.decorators.http import require_POST
 from PIL import Image, ImageOps, UnidentifiedImageError
 from io import BytesIO
 import json
+import logging
 import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
 import tempfile
+from datetime import datetime
+
+logger = logging.getLogger('posts.upload')
 
 from .forms import FamilyLoginForm, FamilyMemberCreateForm, FamilyMemberPhotoForm, FamilyMemberUpdateForm, FamilyPostCommentForm, FamilyPostEditForm
 from .models import FamilyMemberPhoto, FamilyMemberProfile, FamilyPost, FamilyPostComment, FamilyPostImage, FamilyPostVideo, QuarterlyNewspaper, Tag
@@ -192,6 +196,8 @@ def _compress_uploaded_video(uploaded_file, target_max_bytes=MAX_VIDEO_SIZE_BYTE
 	first_output_path = None
 	second_output_path = None
 	original_size = getattr(uploaded_file, 'size', 0) or 0
+	start_time = datetime.now()
+	logger.info(f'[COMPRESS_VIDEO] 시작: {uploaded_file.name}, 크기={original_size}bytes')
 	try:
 		ffmpeg_executable = _resolve_ffmpeg_executable()
 		if not ffmpeg_executable:
@@ -230,10 +236,16 @@ def _compress_uploaded_video(uploaded_file, target_max_bytes=MAX_VIDEO_SIZE_BYTE
 			'+faststart',
 			first_output_path,
 		]
+		logger.info('[COMPRESS_VIDEO] FFmpeg 첫번째 압축 시작 (1280p)')
 		subprocess.run(base_command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		first_duration = (datetime.now() - start_time).total_seconds()
+		logger.info(f'[COMPRESS_VIDEO] 첫번째 압축 완료: {first_duration}초')
 
 		candidate_path = first_output_path
-		if os.path.getsize(candidate_path) > target_max_bytes:
+		first_size = os.path.getsize(candidate_path)
+		logger.info(f'[COMPRESS_VIDEO] 첫번째 결과: {first_size}bytes (limit={target_max_bytes})')
+		if first_size > target_max_bytes:
+			logger.warning(f'[COMPRESS_VIDEO] 첫번째 압축 초과, 두번째 압축 시작 (960p)')
 			second_output = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
 			second_output_path = second_output.name
 			second_output.close()
@@ -260,15 +272,22 @@ def _compress_uploaded_video(uploaded_file, target_max_bytes=MAX_VIDEO_SIZE_BYTE
 				second_output_path,
 			]
 			subprocess.run(second_command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			second_duration = (datetime.now() - start_time).total_seconds()
+			logger.info(f'[COMPRESS_VIDEO] 두번째 압축 완료: {second_duration}초')
 			candidate_path = second_output_path
 
 		candidate_size = os.path.getsize(candidate_path)
+		total_duration = (datetime.now() - start_time).total_seconds()
+		logger.info(f'[COMPRESS_VIDEO] 최종 결과: {candidate_size}bytes, 소요시간={total_duration}초')
 		if candidate_size > target_max_bytes:
 			if original_size and original_size <= target_max_bytes:
+				logger.info(f'[COMPRESS_VIDEO] 원본 파일 사용 (크기 내)')
 				with open(input_temp_path, 'rb') as original_file:
 					return ContentFile(original_file.read(), name=uploaded_file.name), None
+			logger.error(f'[COMPRESS_VIDEO] 실패: 최종 크기 {candidate_size} > {target_max_bytes}')
 			return None, '동영상 압축 후에도 200MB를 초과합니다. 더 짧은 영상이나 해상도가 낮은 파일을 올려주세요.'
 
+		logger.info('[COMPRESS_VIDEO] 성공, 압축된 파일 반환')
 		with open(candidate_path, 'rb') as compressed_file:
 			file_name = f"{Path(uploaded_file.name).stem}.mp4"
 			return ContentFile(compressed_file.read(), name=file_name), None

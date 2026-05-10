@@ -538,8 +538,12 @@
                 event.preventDefault();
                 isSubmitting = true;
                 showLoadingModal();
+                
+                // 디버그 로깅
+                console.log('[Upload] 비동기 업로드 시작', { timestamp: new Date().toISOString() });
 
                 try {
+                    console.log('[Upload] fetch 요청 중...');
                     const response = await fetch(form.action || window.location.href, {
                         method: 'POST',
                         body: new FormData(form),
@@ -548,24 +552,35 @@
                         },
                         credentials: 'same-origin'
                     });
+                    
+                    console.log('[Upload] fetch 응답 수신', { status: response.status, ok: response.ok });
 
-                    const payload = await response.json().catch(() => null);
+                    const payload = await response.json().catch((err) => {
+                        console.error('[Upload] JSON 파싱 실패', err);
+                        return null;
+                    });
+                    console.log('[Upload] 응답 데이터', payload);
+                    
                     if (!response.ok || !payload || payload.ok === false) {
                         const message = payload?.message || '업로드 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                        console.log('[Upload] 업로드 실패', message);
                         showErrorModal(message);
                         return;
                     }
 
                     if (payload.redirect_url) {
+                        console.log('[Upload] 성공, 리다이렉트', payload.redirect_url);
                         window.location.href = payload.redirect_url;
                         return;
                     }
 
                     hideModal();
                 } catch (error) {
+                    console.error('[Upload] 예외 발생', error);
                     showErrorModal(error?.message || '네트워크 오류로 업로드에 실패했습니다.');
                 } finally {
                     isSubmitting = false;
+                    console.log('[Upload] 업로드 프로세스 종료');
                 }
             });
         })();
