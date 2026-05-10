@@ -471,7 +471,6 @@
             form?.addEventListener('submit', (event) => {
                 if (hasOversizedFiles(fileInput.files) || hasOversizedFiles(videoInput?.files)) {
                     event.preventDefault();
-                    event.stopImmediatePropagation();
                     rejectOversizedWithAlert();
                     resetVideoInput();
                     return;
