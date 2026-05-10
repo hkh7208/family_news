@@ -5,17 +5,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ post.title }} | 태선,제인이네 가족신문</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Work+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'posts/home_heritage.css' %}?v=20260510a">
     <link rel="stylesheet" href="{% static 'posts/home.css' %}">
 </head>
 <body>
-    <header class="site-header">
-        <div class="header-top">
-            <div class="site-title-wrap">
-                <img class="site-title-icon" src="{% static 'posts/icons/newspaper.png' %}" alt="신문 아이콘" width="70" height="70">
-                <h1>태선,제인이네 가족신문</h1>
+    <header class="masthead-wrap">
+        <div class="masthead-top">
+            <span class="edition-label">Established 2026</span>
+            <div class="masthead-actions">
+                {% if user.is_authenticated %}
+                <span class="user-pill">{{ user.username }}</span>
+                <a class="action-btn" href="{% url 'family_logout' %}">로그아웃</a>
+                {% else %}
+                <a class="action-btn action-btn-outline" href="{% url 'family_signup' %}">회원가입</a>
+                <a class="action-btn" href="{% url 'family_login' %}">로그인</a>
+                {% endif %}
             </div>
         </div>
-        <p>가족 소식 상세 보기</p>
+
+        <div class="masthead-title">
+            <h1>태선,제인이네 가족신문</h1>
+            <p>가족의 오늘을 남기는 우리 집 디지털 매거진</p>
+        </div>
+
+        <nav class="masthead-nav">
+            <a href="{% url 'home' %}" class="active">Home</a>
+            <a href="{% url 'news_search' %}">Search</a>
+            <a href="{% url 'photo_gallery' %}">Gallery</a>
+            <a href="{% url 'newspaper_hall' %}">Archive</a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'upload_photo' %}">Write</a>
+            {% endif %}
+            {% if user.username == 'bihong' %}
+            <a href="{% url 'pending_approvals' %}">Approvals</a>
+            <a href="{% url 'member_management' %}">Members</a>
+            {% endif %}
+        </nav>
     </header>
 
     <section class="detail-wrap">
