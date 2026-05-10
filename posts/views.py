@@ -7,6 +7,7 @@ from django.db import OperationalError, ProgrammingError
 from django.db.models import Q, Case, When, IntegerField, Value, Count
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET
@@ -50,6 +51,21 @@ def health_check(request):
         db_ok = False
     status = 200 if db_ok else 503
     return JsonResponse({'status': 'ok' if db_ok else 'db_error', 'db': db_ok}, status=status)
+
+
+def _is_ajax_upload_request(request):
+	return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
+def _json_upload_error(message, status=400):
+	return JsonResponse({'ok': False, 'message': message}, status=status)
+
+
+def _first_form_error_message(form):
+	for errors in form.errors.values():
+		if errors:
+			return errors[0]
+	return '입력값을 다시 확인해주세요.'
 
 
 MAX_VIDEO_SIZE_BYTES = 200 * 1024 * 1024
@@ -793,6 +809,7 @@ def family_logout(request):
 
 @login_required
 def upload_photo(request):
+	is_ajax = _is_ajax_upload_request(request)
 	if request.method == 'POST':
 		form = FamilyMemberPhotoForm(request.POST, request.FILES)
 		if form.is_valid():
@@ -804,7 +821,10 @@ def upload_photo(request):
 
 			for image_file in image_files:
 				if getattr(image_file, 'size', 0) > MAX_IMAGE_SIZE_BYTES:
-					messages.error(request, '200메가 이상의 파일은 업로드 불가합니다.')
+					message = '200메가 이상의 파일은 업로드 불가합니다.'
+					messages.error(request, message)
+					if is_ajax:
+						return _json_upload_error(message)
 					return render(request, 'posts/upload_photo.html', {'form': form})
 
 			image_rotations = _parse_image_rotation_values(
@@ -820,11 +840,16 @@ def upload_photo(request):
 			compressed_videos = []
 			for video_file in uploaded_videos:
 				if getattr(video_file, 'size', 0) > MAX_VIDEO_SIZE_BYTES:
-					messages.error(request, '200메가 이상의 파일은 업로드 불가합니다.')
+					message = '200메가 이상의 파일은 업로드 불가합니다.'
+					messages.error(request, message)
+					if is_ajax:
+						return _json_upload_error(message)
 					return render(request, 'posts/upload_photo.html', {'form': form})
 				compressed_video, compress_error = _compress_uploaded_video(video_file, target_max_bytes=MAX_VIDEO_SIZE_BYTES)
 				if compress_error:
 					messages.error(request, compress_error)
+					if is_ajax:
+						return _json_upload_error(compress_error)
 					return render(request, 'posts/upload_photo.html', {'form': form})
 				compressed_videos.append(compressed_video)
 
@@ -834,12 +859,18 @@ def upload_photo(request):
 			if uploaded_images:
 				main_image_index_raw = request.POST.get('main_image_index', '').strip()
 				if not main_image_index_raw.isdigit():
-					messages.error(request, '대표사진 체크박스를 선택해주세요.')
+					message = '대표사진 체크박스를 선택해주세요.'
+					messages.error(request, message)
+					if is_ajax:
+						return _json_upload_error(message)
 					return render(request, 'posts/upload_photo.html', {'form': form})
 
 				main_image_index = int(main_image_index_raw)
 				if main_image_index < 0 or main_image_index >= len(uploaded_images):
-					messages.error(request, '대표사진 선택값이 올바르지 않습니다. 다시 선택해주세요.')
+					message = '대표사진 선택값이 올바르지 않습니다. 다시 선택해주세요.'
+					messages.error(request, message)
+					if is_ajax:
+						return _json_upload_error(message)
 					return render(request, 'posts/upload_photo.html', {'form': form})
 
 				representative_image = uploaded_images[main_image_index]
@@ -852,9 +883,14 @@ def upload_photo(request):
 				representative_image, thumbnail_error = _extract_video_thumbnail(uploaded_videos[0])
 				if thumbnail_error:
 					messages.error(request, thumbnail_error)
+					if is_ajax:
+						return _json_upload_error(thumbnail_error)
 					return render(request, 'posts/upload_photo.html', {'form': form})
 			else:
-				messages.error(request, '사진 또는 동영상을 한 개 이상 선택해주세요.')
+				message = '사진 또는 동영상을 한 개 이상 선택해주세요.'
+				messages.error(request, message)
+				if is_ajax:
+					return _json_upload_error(message)
 				return render(request, 'posts/upload_photo.html', {'form': form})
 
 			caption = (form.cleaned_data.get('caption') or '').strip()
@@ -898,7 +934,15 @@ def upload_photo(request):
 			send_new_post_notification(new_post, request=request)
 
 			messages.success(request, '사진이 업로드되었습니다.')
+			if is_ajax:
+				return JsonResponse({
+					'ok': True,
+					'message': '사진이 업로드되었습니다.',
+					'redirect_url': reverse('home'),
+				})
 			return redirect('home')
+		if is_ajax:
+			return _json_upload_error(_first_form_error_message(form))
 	else:
 		form = FamilyMemberPhotoForm()
 

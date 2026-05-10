@@ -42,8 +42,40 @@
             border-radius: 12px;
             padding: 18px 20px;
             min-width: 220px;
+            max-width: 360px;
             text-align: center;
             border: 1px solid var(--card-border);
+        }
+
+        .upload-status-title {
+            margin: 0 0 8px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .upload-status-message {
+            margin: 0;
+            line-height: 1.5;
+            color: #4b5563;
+            white-space: pre-line;
+        }
+
+        .upload-error-card {
+            display: none;
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #f3b6ae;
+            background: #fff5f4;
+        }
+
+        .upload-error-card.is-active {
+            display: block;
+        }
+
+        .upload-error-actions {
+            margin-top: 12px;
         }
 
         .upload-spinner {
@@ -140,8 +172,16 @@
     <div class="upload-loading" data-upload-loading aria-live="polite" aria-busy="true" aria-label="업로드 진행 중">
         <div class="upload-loading-card">
             <div class="upload-spinner"></div>
-            <p>업로드 및 압축 작업 중입니다...</p>
+            <p class="upload-status-title" data-upload-status-title>업로드 중</p>
+            <p class="upload-status-message" data-upload-status-message>업로드 및 압축 작업 중입니다...</p>
             <p class="dropzone-help">동영상 길이에 따라 최대 수 분이 걸릴 수 있어요.</p>
+            <div class="upload-error-card" data-upload-error-card>
+                <p class="upload-status-title">업로드 실패</p>
+                <p class="upload-status-message" data-upload-error-message></p>
+                <div class="upload-error-actions">
+                    <button type="button" class="menu-btn" data-upload-error-close>확인</button>
+                </div>
+            </div>
         </div>
     </div>
     {% include 'posts/_site_footer.html' %}
@@ -444,22 +484,89 @@
             const form = document.querySelector('[data-upload-form]');
             const loading = document.querySelector('[data-upload-loading]');
             const submitButton = document.querySelector('[data-upload-submit]');
-            if (!form || !loading || !submitButton) return;
+            const statusTitle = document.querySelector('[data-upload-status-title]');
+            const statusMessage = document.querySelector('[data-upload-status-message]');
+            const errorCard = document.querySelector('[data-upload-error-card]');
+            const errorMessage = document.querySelector('[data-upload-error-message]');
+            const errorCloseButton = document.querySelector('[data-upload-error-close]');
+            if (!form || !loading || !submitButton || !statusTitle || !statusMessage || !errorCard || !errorMessage || !errorCloseButton) return;
             const MAX_FILE_BYTES = 200 * 1024 * 1024;
+            let isSubmitting = false;
 
-            form.addEventListener('submit', (event) => {
+            const setLoadingState = (active) => {
+                loading.classList.toggle('is-active', active);
+                submitButton.disabled = active;
+                submitButton.textContent = active ? '업로드 중...' : '업로드';
+            };
+
+            const showLoadingModal = () => {
+                statusTitle.textContent = '업로드 중';
+                statusMessage.textContent = '업로드 및 압축 작업 중입니다...';
+                errorCard.classList.remove('is-active');
+                errorMessage.textContent = '';
+                setLoadingState(true);
+            };
+
+            const showErrorModal = (message) => {
+                statusTitle.textContent = '업로드 중단';
+                statusMessage.textContent = '오류 내용을 확인한 뒤 다시 시도해주세요.';
+                errorMessage.textContent = message || '업로드 중 오류가 발생했습니다.';
+                errorCard.classList.add('is-active');
+                setLoadingState(true);
+            };
+
+            const hideModal = () => {
+                errorCard.classList.remove('is-active');
+                errorMessage.textContent = '';
+                setLoadingState(false);
+            };
+
+            errorCloseButton.addEventListener('click', () => {
+                hideModal();
+            });
+
+            form.addEventListener('submit', async (event) => {
                 const currentVideoInput = form.querySelector('input[name="videos"]');
                 const hasOversizedVideo = Array.from(currentVideoInput?.files || []).some((file) => (file.size || 0) > MAX_FILE_BYTES);
-                if (event.defaultPrevented || hasOversizedVideo) {
+                if (isSubmitting || event.defaultPrevented || hasOversizedVideo) {
                     if (hasOversizedVideo) {
                         event.preventDefault();
                         alert('200메가 이상의 파일은 업로드 불가합니다.');
                     }
                     return;
                 }
-                loading.classList.add('is-active');
-                submitButton.disabled = true;
-                submitButton.textContent = '업로드 중...';
+                event.preventDefault();
+                isSubmitting = true;
+                showLoadingModal();
+
+                try {
+                    const response = await fetch(form.action || window.location.href, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    });
+
+                    const payload = await response.json().catch(() => null);
+                    if (!response.ok || !payload || payload.ok === false) {
+                        const message = payload?.message || '업로드 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                        showErrorModal(message);
+                        return;
+                    }
+
+                    if (payload.redirect_url) {
+                        window.location.href = payload.redirect_url;
+                        return;
+                    }
+
+                    hideModal();
+                } catch (error) {
+                    showErrorModal(error?.message || '네트워크 오류로 업로드에 실패했습니다.');
+                } finally {
+                    isSubmitting = false;
+                }
             });
         })();
     </script>
