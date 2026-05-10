@@ -6,6 +6,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>기사 수정 | 태선,제인이네 가족신문</title>
     <link rel="stylesheet" href="{% static 'posts/home.css' %}">
+    <style>
+        .upload-loading {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .upload-loading.is-active {
+            display: flex;
+        }
+
+        .upload-loading-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 18px 20px;
+            min-width: 220px;
+            max-width: 360px;
+            text-align: center;
+            border: 1px solid var(--card-border);
+        }
+
+        .upload-status-title {
+            margin: 0 0 8px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .upload-status-message {
+            margin: 0;
+            line-height: 1.5;
+            color: #4b5563;
+            white-space: pre-line;
+        }
+
+        .upload-spinner {
+            width: 26px;
+            height: 26px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            border: 3px solid var(--accent-soft);
+            border-top-color: var(--accent);
+            animation: upload-spin 0.9s linear infinite;
+        }
+
+        @keyframes upload-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body>
     <header class="site-header">
@@ -22,7 +77,7 @@
         <div class="form-card">
             <h2 class="form-title">기사 수정</h2>
             <p>태그를 쉼표로 구분해 입력하면 연관 사진 섹션에 함께 노출됩니다.</p>
-            <form method="post" enctype="multipart/form-data">
+            <form method="post" enctype="multipart/form-data" data-upload-form>
                 {% csrf_token %}
                 {% if form.errors %}
                 <div class="form-errors">
@@ -86,6 +141,25 @@
                     {{ form.tags }}
                     <small>{{ form.tags.help_text }}</small>
                 </p>
+                <p>
+                    {{ form.videos.label_tag }}
+                    {{ form.videos }}
+                    <small class="size-limit-text">사진과동영상은 파일당 최대 200MB까지 업로드 가능합니다.</small>
+                </p>
+                {% if post.videos.all %}
+                <p>
+                    기존 동영상
+                    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 8px;">
+                        {% for video in post.videos.all %}
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="delete_existing_videos" value="{{ video.pk }}">
+                            삭제
+                            <a href="{{ video.video.url }}" target="_blank" rel="noopener">동영상 {{ forloop.counter }}</a>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </p>
+                {% endif %}
                 <div class="dropzone dropzone-clickable" data-dropzone tabindex="0" role="button" aria-label="사진 업로드 영역" style="border: 3px dashed var(--accent); background: rgba(120, 185, 181, 0.16); min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px;">
                     <p class="dropzone-title">사진을 드래그하세요</p>
                     <p class="dropzone-sub">여기에 파일을 끌어놓거나 이 영역을 클릭하세요.</p>
@@ -101,17 +175,28 @@
                 </div>
                 <div class="form-actions">
                     <a class="menu-btn menu-btn-outline" href="{% url 'post_detail' post.pk %}">취소</a>
-                    <button class="menu-btn" type="submit">저장</button>
+                    <button class="menu-btn" type="submit" data-upload-submit>저장</button>
                 </div>
             </form>
         </div>
     </section>
 
+    <div class="upload-loading" data-upload-loading aria-live="polite" aria-busy="true" aria-label="업로드 진행 중">
+        <div class="upload-loading-card">
+            <div class="upload-spinner"></div>
+            <p class="upload-status-title">저장 중</p>
+            <p class="upload-status-message">업로드 및 압축 작업 중입니다...</p>
+            <p class="dropzone-help">동영상 길이에 따라 최대 수 분이 걸릴 수 있어요.</p>
+        </div>
+    </div>
+
     <script>
         (function () {
             const zone = document.querySelector('[data-dropzone]');
             if (!zone) return;
+            const MAX_FILE_BYTES = 200 * 1024 * 1024;
             const fileInput = zone.querySelector('input[name="images"]');
+            let videoInput = document.querySelector('input[name="videos"]');
             const mainImageIndexInput = zone.querySelector('input[name="main_image_index"]');
             const imageRotationsInput = zone.querySelector('input[name="image_rotations"]');
             const mainImageRotationInput = document.querySelector('input[name="main_image_rotation"]');
@@ -137,6 +222,16 @@
             const syncExistingRotationInput = () => {
                 if (!existingImageRotationsInput) return;
                 existingImageRotationsInput.value = JSON.stringify(existingImageRotationState);
+            };
+
+            const hasOversizedFiles = (files) => Array.from(files || []).some((file) => (file.size || 0) > MAX_FILE_BYTES);
+
+            const resetVideoInput = () => {
+                if (!videoInput) return;
+                const replacement = videoInput.cloneNode(true);
+                videoInput.parentNode.replaceChild(replacement, videoInput);
+                videoInput = replacement;
+                bindVideoInputValidation();
             };
 
             const existingMainPreview = document.querySelector('[data-existing-main-preview]');
@@ -312,10 +407,30 @@
             zone.addEventListener('drop', (event) => {
                 const dropped = event.dataTransfer?.files;
                 if (!dropped || !dropped.length) return;
-                const transfer = new DataTransfer();
-                Array.from(dropped).forEach((file) => transfer.items.add(file));
-                fileInput.files = transfer.files;
-                selectedByDrop = true;
+                if (hasOversizedFiles(dropped)) {
+                    alert('200메가 이상의 파일은 업로드 불가합니다.');
+                    return;
+                }
+
+                const droppedFiles = Array.from(dropped);
+                const imageTransfer = new DataTransfer();
+                const videoTransfer = new DataTransfer();
+
+                droppedFiles.forEach((file) => {
+                    if ((file.type || '').startsWith('video/')) {
+                        videoTransfer.items.add(file);
+                        return;
+                    }
+                    if ((file.type || '').startsWith('image/')) {
+                        imageTransfer.items.add(file);
+                    }
+                });
+
+                fileInput.files = imageTransfer.files;
+                if (videoInput) {
+                    videoInput.files = videoTransfer.files;
+                }
+                selectedByDrop = imageTransfer.files.length > 0;
                 renderList();
             });
 
@@ -344,7 +459,52 @@
                 imageRotationState = {};
                 renderList();
             });
+
+            const bindVideoInputValidation = () => {
+                if (!videoInput) return;
+                videoInput.addEventListener('change', () => {
+                    if (hasOversizedFiles(videoInput.files)) {
+                        alert('200메가 이상의 파일은 업로드 불가합니다.');
+                        resetVideoInput();
+                    }
+                });
+            };
+            bindVideoInputValidation();
             renderList();
+        })();
+
+        (function () {
+            const form = document.querySelector('[data-upload-form]');
+            const loading = document.querySelector('[data-upload-loading]');
+            const submitButton = document.querySelector('[data-upload-submit]');
+            if (!form || !loading || !submitButton) return;
+
+            const MAX_FILE_BYTES = 200 * 1024 * 1024;
+            let isSubmitting = false;
+
+            const hasOversizedFiles = (files) => Array.from(files || []).some((file) => (file.size || 0) > MAX_FILE_BYTES);
+
+            form.addEventListener('submit', (event) => {
+                const imageInput = form.querySelector('input[name="images"]');
+                const videoInput = form.querySelector('input[name="videos"]');
+                const hasOversized = hasOversizedFiles(imageInput?.files) || hasOversizedFiles(videoInput?.files);
+
+                if (isSubmitting) {
+                    event.preventDefault();
+                    return;
+                }
+
+                if (hasOversized) {
+                    event.preventDefault();
+                    alert('200메가 이상의 파일은 업로드 불가합니다.');
+                    return;
+                }
+
+                isSubmitting = true;
+                loading.classList.add('is-active');
+                submitButton.disabled = true;
+                submitButton.textContent = '저장 중...';
+            });
         })();
     </script>
     {% include 'posts/_site_footer.html' %}

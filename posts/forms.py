@@ -165,6 +165,12 @@ class FamilyPostEditForm(forms.ModelForm):
         required=False,
         help_text='여러 장 선택 가능합니다. 대표사진 체크박스를 선택해 대표를 지정하세요. 사진은 파일당 최대 200MB까지 업로드 가능합니다.',
     )
+    videos = MultipleFileField(
+        label='동영상',
+        required=False,
+        widget=MultipleFileInput(attrs={'accept': 'video/*'}),
+        help_text='동영상은 파일당 최대 200MB까지 업로드 가능하며, 업로드 시 200MB 이하로 압축 저장됩니다.',
+    )
     tags = forms.CharField(
         label='태그',
         required=False,

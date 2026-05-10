@@ -651,11 +651,23 @@ def edit_post(request, pk):
 				for image_file in request.FILES.getlist('images')
 				if getattr(image_file, 'content_type', '').startswith('image/')
 			]
+			uploaded_videos = request.FILES.getlist('videos')
 
 			for image_file in image_files:
 				if getattr(image_file, 'size', 0) > MAX_IMAGE_SIZE_BYTES:
 					form.add_error('images', '200메가 이상의 파일은 업로드 불가합니다.')
 					return render(request, 'posts/edit_post.html', {'form': form, 'post': post})
+
+			compressed_videos = []
+			for video_file in uploaded_videos:
+				if getattr(video_file, 'size', 0) > MAX_VIDEO_SIZE_BYTES:
+					form.add_error('videos', '200메가 이상의 파일은 업로드 불가합니다.')
+					return render(request, 'posts/edit_post.html', {'form': form, 'post': post})
+				compressed_video, compress_error = _compress_uploaded_video(video_file, target_max_bytes=MAX_VIDEO_SIZE_BYTES)
+				if compress_error:
+					form.add_error('videos', compress_error)
+					return render(request, 'posts/edit_post.html', {'form': form, 'post': post})
+				compressed_videos.append(compressed_video)
 
 			edited_post = form.save(commit=False)
 			delete_main_image = request.POST.get('delete_main_image') == 'on'
@@ -663,6 +675,11 @@ def edit_post(request, pk):
 				int(image_id)
 				for image_id in request.POST.getlist('delete_existing_images')
 				if image_id.isdigit()
+			}
+			delete_extra_video_ids = {
+				int(video_id)
+				for video_id in request.POST.getlist('delete_existing_videos')
+				if video_id.isdigit()
 			}
 			remaining_extra_images = list(
 				edited_post.images.exclude(pk__in=delete_extra_image_ids).order_by('created_at')
@@ -729,8 +746,14 @@ def edit_post(request, pk):
 			if delete_extra_image_ids:
 				edited_post.images.filter(pk__in=delete_extra_image_ids).delete()
 
+			if delete_extra_video_ids:
+				edited_post.videos.filter(pk__in=delete_extra_video_ids).delete()
+
 			for uploaded_image in extra_uploaded_images:
 				FamilyPostImage.objects.create(post=edited_post, image=uploaded_image)
+
+			for compressed_video in compressed_videos:
+				FamilyPostVideo.objects.create(post=edited_post, video=compressed_video)
 
 			messages.success(request, '기사가 수정되었습니다.')
 			return redirect('post_detail', pk=post.pk)
